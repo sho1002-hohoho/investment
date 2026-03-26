@@ -265,8 +265,28 @@ tbody tr:last-child td{border-bottom:none;}
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 const SHEET_URL='https://script.google.com/macros/s/AKfycbwZD1EkBSlBDy5Mlr73loEDIwg7zYekUvIK3efeproPOqFJgzN3LcwIw0iC4skaLWcj/exec';
 const API_URL='https://corsproxy.io/?'+encodeURIComponent(SHEET_URL);
-let liveData={stocks:[],history:[]};
+let liveData={stocks:[]};
 let entries=[],currentType='buy';
+
+// ── 구글 시트 API 호출 (접속시 1회) ──
+async function fetchLiveData(){
+  const status=document.getElementById('apiStatus');
+  status.className='api-status loading';
+  status.textContent='● 불러오는 중...';
+  try{
+    const res=await fetch(API_URL);
+    const data=await res.json();
+    liveData=data;
+    status.className='api-status ok';
+    status.textContent='● 실시간 연동';
+    renderPortfolio();
+    renderTable();
+    updateSamsungTotal();
+  }catch(e){
+    status.className='api-status err';
+    status.textContent='● 연결 실패';
+  }
+}
 
 // ── 네비게이션 ──
 document.querySelectorAll('.nav-item[data-page]').forEach(item=>{
