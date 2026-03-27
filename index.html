@@ -201,11 +201,18 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="row" style="align-items:flex-start">
       <div class="card overview-card">
         <div class="card-header"><span style="font-size:13.5px;font-weight:500">Portfolio Overview</span></div>
-        <table><thead><tr><th>종목</th><th>보유주식수</th><th>현재가</th><th>수익률</th><th>수익(원)</th><th>총 매수금액</th></tr></thead><tbody id="stockTable"></tbody></table>
+        <table><thead><tr><th>종목</th><th>현재가</th><th>수익(원)</th><th>1주당 평가금액</th><th>현재 총금액</th></tr></thead><tbody id="stockTable"></tbody></table>
       </div>
-      <div class="card watchlist-card">
-        <div class="card-header"><span style="font-size:13.5px;font-weight:500">Watchlist</span></div>
-        <div id="watchlist"></div>
+      <div class="card" style="flex:1;min-width:220px">
+        <div class="card-header"><span style="font-size:13.5px;font-weight:500">종목 비중</span></div>
+        <div style="position:relative;width:180px;margin:0 auto 16px">
+          <canvas id="donutChart" width="180" height="100"></canvas>
+          <div id="donutCenter" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-20%);text-align:center;pointer-events:none">
+            <div style="font-size:10px;color:var(--muted)">총 자산</div>
+            <div id="donutTotal" style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace">₩0</div>
+          </div>
+        </div>
+        <div id="donutLegend" style="display:flex;flex-direction:column;gap:6px"></div>
       </div>
     </div>
   </div>
@@ -475,7 +482,7 @@ function renderPerfChart(range) {
 function renderTable() {
   var stocks = getSamsungStocks();
   var tbody = document.getElementById('stockTable');
-  if (!stocks.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">거래일지에서 삼성계좌 거래를 추가하면 표시돼요.</td></tr>'; return; }
+  if (!stocks.length) { tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">거래일지에서 삼성계좌 거래를 추가하면 표시돼요.</td></tr>'; renderDonut(); return; }
   tbody.innerHTML = stocks.map(function(s) {
     var avg = s.totalQty > 0 ? s.totalBuy / s.totalQty : 0;
     var live = getLive(s.stock);
@@ -484,20 +491,58 @@ function renderTable() {
     var profit = curVal - s.totalBuy;
     var pct = s.totalBuy > 0 ? (profit / s.totalBuy * 100) : 0;
     return '<tr>'
-      + '<td><div class="stock-name-cell"><div class="mini-icon">' + s.stock[0] + '</div><span style="font-weight:500">' + s.stock + '</span></div></td>'
-      + '<td class="mono">' + s.totalQty.toLocaleString('ko-KR') + '주</td>'
+      + '<td><div class="stock-name-cell"><div class="mini-icon">' + s.stock[0] + '</div>'
+      + '<div><div style="font-weight:500">' + s.stock + '</div>'
+      + '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">' + s.totalQty.toLocaleString('ko-KR') + '주</div></div></div></td>'
       + '<td class="mono">₩' + Math.round(cur).toLocaleString('ko-KR') + '</td>'
-      + '<td class="' + (pct>=0?'up':'dn') + '" style="font-weight:500">' + (pct>=0?'+':'') + pct.toFixed(2) + '%</td>'
-      + '<td class="' + (profit>=0?'up':'dn') + '" style="font-weight:500">' + (profit>=0?'+':'') + Math.round(profit).toLocaleString('ko-KR') + '원</td>'
-      + '<td class="mono" style="color:var(--muted)">₩' + Math.round(s.totalBuy).toLocaleString('ko-KR') + '</td>'
+      + '<td><div class="' + (profit>=0?'up':'dn') + '" style="font-weight:500">' + (profit>=0?'+':'') + Math.round(profit).toLocaleString('ko-KR') + '원</div>'
+      + '<div style="font-size:10.5px;margin-top:2px;color:' + (pct>=0?'var(--green)':'var(--red)') + '">' + (pct>=0?'+':'') + pct.toFixed(2) + '%</div></td>'
+      + '<td><div class="mono" style="font-weight:500">₩' + Math.round(cur).toLocaleString('ko-KR') + '</div>'
+      + '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">₩' + Math.round(avg).toLocaleString('ko-KR') + '</div></td>'
+      + '<td><div class="mono" style="font-weight:500">₩' + Math.round(curVal).toLocaleString('ko-KR') + '</div>'
+      + '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">₩' + Math.round(s.totalBuy).toLocaleString('ko-KR') + '</div></td>'
       + '</tr>';
   }).join('');
+  renderDonut();
 }
-function renderWatchlist() {
-  var wd = [{ticker:'NYSE: SPOT',name:'Spotify',price:380.5,change:2.88},{ticker:'NYSE: AMZN',name:'Amazon',price:189.74,change:1.43},{ticker:'NYSE: META',name:'Meta',price:512.20,change:-0.62},{ticker:'NASDAQ: NFLX',name:'Netflix',price:658.90,change:3.21}];
-  var icons = ['S','A','M','N'], colors = ['#1db954','#ff9900','#0082fb','#e50914'];
-  document.getElementById('watchlist').innerHTML = wd.map(function(w,i) {
-    return '<div class="watch-item"><div class="watch-dot" style="background:'+colors[i]+'22;color:'+colors[i]+'">'+icons[i]+'</div><div class="watch-info"><div class="watch-name">'+w.name+'</div><div class="watch-ticker">'+w.ticker+'</div></div><div class="watch-price"><div class="watch-amount">$'+w.price.toFixed(1)+'</div><div class="watch-chg '+(w.change>=0?'up':'dn')+'">'+(w.change>=0?'+':'')+w.change+'</div></div></div>';
+function renderWatchlist() {} // watchlist 제거
+
+var donutChart = null;
+var donutColors = ['#3b7bff','#22d87a','#ff4d6a','#f59e0b','#a855f7','#06b6d4','#ec4899','#84cc16'];
+function renderDonut() {
+  var stocks = getSamsungStocks();
+  var canvas = document.getElementById('donutChart');
+  if (!canvas) return;
+  var total = 0;
+  var vals = stocks.map(function(st) {
+    var live = getLive(st.stock);
+    var cur = (live && live.price) ? live.price : (st.totalBuy / Math.max(st.totalQty,1));
+    var v = cur * st.totalQty; total += v; return v;
+  });
+  document.getElementById('donutTotal').textContent = '₩' + Math.round(total).toLocaleString('ko-KR');
+  var labels = stocks.map(function(s){ return s.stock; });
+  var colors = stocks.map(function(_,i){ return donutColors[i % donutColors.length]; });
+  if (donutChart) donutChart.destroy();
+  donutChart = new Chart(canvas, {
+    type: 'doughnut',
+    data: { labels: labels, datasets: [{ data: vals, backgroundColor: colors, borderWidth: 2, borderColor: '#111118' }] },
+    options: {
+      responsive: false, rotation: -90, circumference: 180, cutout: '70%',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: function(ctx) { var pct = total>0?(ctx.parsed/total*100).toFixed(1):0; return ctx.label+': '+pct+'%'; } } }
+      }
+    }
+  });
+  var legend = document.getElementById('donutLegend');
+  if (!legend) return;
+  legend.innerHTML = labels.map(function(label, i) {
+    var pct = total > 0 ? (vals[i] / total * 100).toFixed(1) : '0.0';
+    return '<div style="display:flex;align-items:center;justify-content:space-between">'
+      + '<div style="display:flex;align-items:center;gap:6px">'
+      + '<div style="width:8px;height:8px;border-radius:50%;background:'+colors[i]+'"></div>'
+      + '<span style="font-size:12px">'+label+'</span></div>'
+      + '<span style="font-size:12px;font-weight:600;color:'+colors[i]+'">'+pct+'%</span></div>';
   }).join('');
 }
 function updateSamsungTotal() {
@@ -668,6 +713,20 @@ document.querySelectorAll('.col-resizer').forEach(function(resizer) {
   });
 });
 loadStockMeta();
+entries = [{
+  id: 9999999,
+  date: '2026-03-27',
+  type: 'buy',
+  stock: '삼성전자',
+  account: '삼성계좌',
+  qty: 4,
+  bp: 180000,
+  sp: 0,
+  tb: 720000,
+  ts: 0,
+  profit: 0,
+  note: '예시 데이터 (나중에 삭제)'
+}];
 renderPortfolio(); renderPerfChart('3m'); renderTable(); renderWatchlist(); renderJournal(); renderStocksPage(); updateSamsungTotal();
 fetchLiveData(false);
 </script>
