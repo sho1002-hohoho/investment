@@ -37,14 +37,38 @@ function openModal() {
   document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
   ['fStock','fQty','fBuyPrice','fSellPrice','fTotalBuy','fTotalSell','fProfit','fNote'].forEach(function(id){ document.getElementById(id).value = ''; });
   document.getElementById('fProfit').style.color = 'var(--muted)';
+  window._currentType = 'buy';
   if (typeof setType === 'function') setType('buy');
   document.getElementById('modalOverlay').classList.add('open');
 }
 function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+function saveEntry() {
+  var stock = document.getElementById('fStock').value.trim();
+  if (!stock) { alert('종목명을 입력해주세요.'); return; }
+  var qty = parseFloat(document.getElementById('fQty').value) || 0;
+  var bp = parseFloat(document.getElementById('fBuyPrice').value) || 0;
+  var sp = parseFloat(document.getElementById('fSellPrice').value) || 0;
+  var entry = {
+    id: Date.now(),
+    date: document.getElementById('fDate').value,
+    type: window._currentType || 'buy',
+    stock: stock,
+    account: document.getElementById('fAccount').value,
+    qty: qty, bp: bp, sp: sp,
+    tb: qty*bp, ts: qty*sp,
+    profit: (qty*sp)-(qty*bp),
+    note: document.getElementById('fNote').value
+  };
+  window._entries = window._entries || [];
+  window._entries.unshift(entry);
+  if (typeof postTradeToSheet === 'function') postTradeToSheet(entry);
+  closeModal();
+  if (typeof refreshAll === 'function') refreshAll();
+}
 function saveCashEntry() {
   var amount = parseFloat(document.getElementById('cAmount').value) || 0;
   if (!amount) { alert('금액을 입력해주세요.'); return; }
-  if (!window._cashEntries) window._cashEntries = [];
+  window._cashEntries = window._cashEntries || [];
   window._cashEntries.unshift({
     id: Date.now(),
     date: document.getElementById('cDate').value,
@@ -54,7 +78,7 @@ function saveCashEntry() {
     note: document.getElementById('cNote').value
   });
   closeCashModal();
-  if (typeof window.renderCashJournal === 'function') window.renderCashJournal();
+  if (window.renderCashJournal) window.renderCashJournal();
 }
 var pageDescs = {};
 function loadPageDescs(){try{var d=localStorage.getItem('pageDescs');if(d)pageDescs=JSON.parse(d);}catch(e){}}
@@ -216,6 +240,19 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="nav-item" onclick="goTo('journal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>거래일지</div>
   <div class="nav-item" onclick="goTo('stocks')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>종목 현황</div>
   <div class="sidebar-spacer"></div>
+  <div style="padding:16px 20px;border-top:1px solid var(--border)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3b7bff,#a855f7);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:white;flex-shrink:0">NR</div>
+      <div>
+        <div style="font-size:12px;font-weight:500">Naya Rachel</div>
+        <div style="font-size:10.5px;color:var(--muted)">rachel@gmail.com</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:10px;color:var(--muted)">Stock <span style="color:var(--accent)">Portfolio</span></div>
+      <div style="font-size:10px;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:2px 6px">v1.0</div>
+    </div>
+  </div>
 </aside>
 
 <!-- PAGE: 삼성계좌 -->
@@ -632,7 +669,7 @@ tbody tr:last-child td{border-bottom:none;}
 <!-- MODAL -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
-    <div class="modal-title">거래 추가<button class="modal-close" id="closeModalBtn">&#10005;</button></div>
+    <div class="modal-title">거래 추가<button class="modal-close" onclick="closeModal()">&#10005;</button></div>
     <div class="form-grid">
       <div class="form-group full"><div class="form-label">매수 / 매도</div><div class="type-toggle"><button class="type-btn buy active" id="typeBuy">📈 매수</button><button class="type-btn sell" id="typeSell">📉 매도</button></div></div>
       <div class="form-group"><label class="form-label">날짜</label><input class="form-input" type="date" id="fDate"></div>
@@ -647,7 +684,7 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="form-group full"><label class="form-label">비고</label><input class="form-input" type="text" id="fNote" placeholder="메모 (선택)"></div>
     </div>
     <p class="hint" style="text-align:right">Enter 저장 &nbsp;·&nbsp; ESC 취소</p>
-    <div class="modal-footer"><button class="btn-cancel" id="cancelBtn">취소</button><button class="btn-save" id="saveBtn">저장</button></div>
+    <div class="modal-footer"><button class="btn-cancel" onclick="closeModal()">취소</button><button class="btn-save" onclick="saveEntry()">저장</button></div>
   </div>
 </div>
 
@@ -655,7 +692,9 @@ tbody tr:last-child td{border-bottom:none;}
 var SHEET_URL = 'https://script.google.com/macros/s/AKfycbwZD1EkBSlBDy5Mlr73loEDIwg7zYekUvIK3efeproPOqFJgzN3LcwIw0iC4skaLWcj/exec';
 var API_URL = 'https://corsproxy.io/?' + encodeURIComponent(SHEET_URL);
 var liveData = {stocks:[]};
-var entries = [];
+window._entries = window._entries || [];
+var entries = window._entries;
+window._currentType = 'buy';
 var currentType = 'buy';
 var perfChart = null;
 
@@ -781,7 +820,7 @@ function renderStocksPage() {
 // 삼성계좌
 function getSamsungStocks() {
   var map = {};
-  entries.filter(function(e){ return e.account === '삼성계좌'; }).forEach(function(e) {
+  (window._entries || []).filter(function(e){ return e.account === '삼성계좌'; }).forEach(function(e) {
     if (!map[e.stock]) map[e.stock] = {stock:e.stock, totalQty:0, totalBuy:0, profit:0};
     if (e.type === 'buy') { map[e.stock].totalQty += e.qty; map[e.stock].totalBuy += e.tb; }
     else map[e.stock].totalQty = Math.max(0, map[e.stock].totalQty - e.qty);
@@ -1021,6 +1060,7 @@ document.addEventListener('keydown', function(e) {
 });
 function setType(t) {
   currentType = t;
+  window._currentType = t;
   document.getElementById('typeBuy').className = 'type-btn buy' + (t==='buy' ? ' active' : '');
   document.getElementById('typeSell').className = 'type-btn sell' + (t==='sell' ? ' active' : '');
   calcTotal();
@@ -1041,7 +1081,7 @@ function calcTotal() {
 var accountDonutCharts = {};
 function getAccountStocks(accountName) {
   var map = {};
-  entries.filter(function(e){ return e.account === accountName; }).forEach(function(e) {
+  (window._entries || []).filter(function(e){ return e.account === accountName; }).forEach(function(e) {
     if (!map[e.stock]) map[e.stock] = {stock:e.stock, totalQty:0, totalBuy:0, profit:0};
     if (e.type==='buy') { map[e.stock].totalQty += e.qty; map[e.stock].totalBuy += e.tb; }
     else map[e.stock].totalQty = Math.max(0, map[e.stock].totalQty - e.qty);
@@ -1147,23 +1187,14 @@ function renderAllAccounts() {
 }
 
 function refreshAll() { renderJournal(); renderPortfolio(); renderTable(); renderDonut(); renderAllAccounts(); renderStocksPage(); updateSamsungTotal(); }
-function saveEntry() {
-  var stock = document.getElementById('fStock').value.trim();
-  if (!stock) { alert('종목명을 입력해주세요.'); return; }
-  var qty = parseFloat(document.getElementById('fQty').value) || 0;
-  var bp = parseFloat(document.getElementById('fBuyPrice').value) || 0;
-  var sp = parseFloat(document.getElementById('fSellPrice').value) || 0;
-  var entry = {id:Date.now(), date:document.getElementById('fDate').value, type:currentType, stock:stock, account:document.getElementById('fAccount').value, qty:qty, bp:bp, sp:sp, tb:qty*bp, ts:qty*sp, profit:(qty*sp)-(qty*bp), note:document.getElementById('fNote').value};
-  entries.unshift(entry);
-  postTradeToSheet(entry);
-  closeModal(); refreshAll();
-}
-function deleteEntry(id) { entries = entries.filter(function(e){ return e.id !== id; }); refreshAll(); }
+function deleteEntry(id) { window._entries = (window._entries || []).filter(function(e){ return e.id !== id; }); refreshAll(); }
 function renderJournal() {
+  var entries = window._entries || [];
   var tbody = document.getElementById('journalBody');
   var empty = document.getElementById('journalEmpty');
-  if (!entries.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
-  empty.style.display = 'none';
+  if (!tbody) return;
+  if (!entries.length) { tbody.innerHTML = ''; if(empty) empty.style.display = 'block'; return; }
+  if(empty) empty.style.display = 'none';
   tbody.innerHTML = entries.map(function(e) {
     var pc = e.profit > 0 ? 'profit-pos' : e.profit < 0 ? 'profit-neg' : '';
     var ps = e.profit ? ((e.profit>0?'+':'') + fmt(e.profit)) : '-';
@@ -1230,9 +1261,8 @@ function importCSV(event) {
 // 이벤트 등록
 document.getElementById('typeBuy').addEventListener('click', function(){ setType('buy'); });
 document.getElementById('typeSell').addEventListener('click', function(){ setType('sell'); });
-document.getElementById('closeModalBtn').addEventListener('click', closeModal);
-document.getElementById('cancelBtn').addEventListener('click', closeModal);
-document.getElementById('saveBtn').addEventListener('click', saveEntry);
+// closeModalBtn은 onclick으로 처리됨
+// cancelBtn, saveBtn은 onclick으로 처리됨
 document.getElementById('exportBtn').addEventListener('click', exportCSV);
 document.getElementById('csvImportInput').addEventListener('change', importCSV);
 document.getElementById('refreshBtn').addEventListener('click', function(){ fetchLiveData(true); });
@@ -1257,5 +1287,24 @@ document.querySelectorAll('.col-resizer').forEach(function(resizer) {
     document.addEventListener('mouseup', onUp);
   });
 });
-loadStockMeta(); loadPageDescs(); applyPageDescs();
-ent
+loadStockMeta(); loadPageDescs(); applyPageDescs();window._entries = window._entries || [];
+window._cashEntries = window._cashEntries || [];
+window._entries = [{
+  id: 9999999,
+  date: '2026-03-27',
+  type: 'buy',
+  stock: '삼성전자',
+  account: '삼성계좌',
+  qty: 4,
+  bp: 180000,
+  sp: 0,
+  tb: 720000,
+  ts: 0,
+  profit: 0,
+  note: '예시 데이터 (나중에 삭제)'
+}];
+renderPortfolio(); renderPerfChart('3m', '삼성계좌'); renderTable(); renderWatchlist(); renderJournal(); window.renderCashJournal(); renderAllAccounts(); renderStocksPage(); updateSamsungTotal();
+fetchLiveData(false);
+</script>
+</body>
+</html>
