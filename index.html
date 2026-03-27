@@ -262,17 +262,21 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="journal-table-wrap">
       <div class="journal-table-header"><span style="font-size:13.5px;font-weight:500">전체 종목 목록</span></div>
       <div style="overflow-x:auto">
-        <table class="jt" style="table-layout:fixed;width:100%">
-          <thead><tr>
-            <th style="width:20%">종목명</th>
-            <th style="width:20%">티커</th>
-            <th style="width:20%">현재가</th>
-            <th style="width:20%">전일대비</th>
+        <table class="jt" id="stocksTable" style="table-layout:fixed;width:100%">
+          <thead><tr id="stocksHead">
+            <th style="width:20%;position:relative">종목명<span class="col-resizer"></span></th>
+            <th style="width:20%;position:relative">티커<span class="col-resizer"></span></th>
+            <th style="width:20%;position:relative">현재가<span class="col-resizer"></span></th>
+            <th style="width:20%;position:relative">전일대비<span class="col-resizer"></span></th>
             <th style="width:20%">상태</th>
           </tr></thead>
           <tbody id="stocksBody"></tbody>
         </table>
       </div>
+      <style>
+        .col-resizer{position:absolute;right:0;top:0;width:6px;height:100%;cursor:col-resize;background:transparent;z-index:1;}
+        .col-resizer:hover,.col-resizer.dragging{background:rgba(59,123,255,0.5);}
+      </style>
       <div id="stocksEmpty" class="empty-state"><div>📈</div>구글 시트에 종목을 추가하면<br>여기에 표시돼요!</div>
     </div>
   </div>
@@ -610,4 +614,28 @@ document.getElementById('exportBtn').addEventListener('click', exportCSV);
 document.getElementById('csvImportInput').addEventListener('change', importCSV);
 document.getElementById('refreshBtn').addEventListener('click', function(){ fetchLiveData(true); });
 document.getElementById('modalOverlay').addEventListener('click', function(e){ if(e.target===document.getElementById('modalOverlay')) closeModal(); });
-['fQty','fBuyPrice','fSellPrice'].forEach(function(id){ document.getElementById(id).addEventListener('input', calcTotal)
+['fQty','fBuyPrice','fSellPrice'].forEach(function(id){ document.getElementById(id).addEventListener('input', calcTotal); });
+document.addEventListener('keydown', function(e) {
+  if (!document.getElementById('modalOverlay').classList.contains('open')) return;
+  if (e.key==='Enter' && e.target.tagName!=='BUTTON') { e.preventDefault(); saveEntry(); }
+  if (e.key==='Escape') closeModal();
+});
+// 컬럼 너비 조절
+document.querySelectorAll('.col-resizer').forEach(function(resizer) {
+  resizer.addEventListener('mousedown', function(e) {
+    e.preventDefault();
+    var th = resizer.parentElement;
+    var startX = e.pageX;
+    var startW = th.offsetWidth;
+    resizer.classList.add('dragging');
+    function onMove(e) { if (e.pageX - startX + startW > 40) th.style.width = (startW + e.pageX - startX) + 'px'; }
+    function onUp() { resizer.classList.remove('dragging'); document.removeEventListener('mousemove', onMove); document.removeEventListener('mouseup', onUp); }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+});
+renderPortfolio(); renderPerfChart('3m'); renderTable(); renderWatchlist(); renderJournal(); renderStocksPage(); updateSamsungTotal();
+fetchLiveData(false);
+</script>
+</body>
+</html>
