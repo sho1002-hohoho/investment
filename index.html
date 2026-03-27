@@ -468,7 +468,7 @@ function renderJournal(){
   empty.style.display='none';
   tbody.innerHTML=entries.map(e=>{
     const pc=e.profit>0?'profit-pos':e.profit<0?'profit-neg':'',ps=e.profit?(e.profit>0?'+':'')+fmt(e.profit):'-';
-    return '<tr><td>'+e.date+'</td><td><span class="type-badge '+e.type+'">'+(e.type==='buy'?'매수':'매도')+'</span></td><td style="font-weight:500">'+e.stock+'</td><td style="color:var(--muted)">'+e.account+'</td><td>'+e.qty.toLocaleString()+'</td><td>'+(e.bp?fmt(e.bp):'-')+'</td><td>'+(e.sp?fmt(e.sp):'-')+'</td><td>'+(e.tb?fmt(e.tb):'-')+'</td><td>'+(e.ts?fmt(e.ts):'-')+'</td><td class="'+pc+'">'+ps+'</td><td style="color:var(--muted)">'+( e.note||'-')+'</td><td><button class="del-btn" onclick="deleteEntry('+e.id+')">✕</button></td></tr>';
+    return '<tr><td>'+e.date+'</td><td><span class="type-badge '+e.type+'">'+(e.type==='buy'?'매수':'매도')+'</span></td><td style="font-weight:500">'+e.stock+'</td><td style="color:var(--muted)">'+e.account+'</td><td>'+e.qty.toLocaleString()+'</td><td>'+(e.bp?fmt(e.bp):'-')+'</td><td>'+(e.sp?fmt(e.sp):'-')+'</td><td>'+(e.tb?fmt(e.tb):'-')+'</td><td>'+(e.ts?fmt(e.ts):'-')+'</td><td class="'+pc+'">'+ps+'</td><td style="color:var(--muted)">'+(e.note||'-')+'</td><td><button class="del-btn" onclick="deleteEntry('+e.id+')">✕</button></td></tr>';
   }).join('');
   const tb=entries.reduce((s,e)=>s+e.tb,0),ts=entries.reduce((s,e)=>s+e.ts,0),tp=entries.reduce((s,e)=>s+e.profit,0);
   document.getElementById('sumBuy').textContent=fmt(tb)||'₩0';
