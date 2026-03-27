@@ -200,10 +200,8 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="row" style="align-items:flex-start">
       <div class="card overview-card">
-        <div class="card-header"><span style="font-size:13.5px;font-weight:500">Portfolio Overview</span>
-          <div class="filter-tabs"><div class="filter-tab active">All</div><div class="filter-tab">Gainers</div><div class="filter-tab">Losers</div></div>
-        </div>
-        <table><thead><tr><th>종목</th><th>현재가</th><th>전일대비</th><th>평균단가</th><th>수익률</th><th>추이</th></tr></thead><tbody id="stockTable"></tbody></table>
+        <div class="card-header"><span style="font-size:13.5px;font-weight:500">Portfolio Overview</span></div>
+        <table><thead><tr><th>종목</th><th>보유주식수</th><th>현재가</th><th>수익률</th><th>수익(원)</th><th>총 매수금액</th></tr></thead><tbody id="stockTable"></tbody></table>
       </div>
       <div class="card watchlist-card">
         <div class="card-header"><span style="font-size:13.5px;font-weight:500">Watchlist</span></div>
@@ -264,11 +262,13 @@ tbody tr:last-child td{border-bottom:none;}
       <div style="overflow-x:auto">
         <table class="jt" id="stocksTable" style="table-layout:fixed;width:100%">
           <thead><tr id="stocksHead">
-            <th style="width:20%;position:relative">종목명<span class="col-resizer"></span></th>
-            <th style="width:20%;position:relative">티커<span class="col-resizer"></span></th>
-            <th style="width:20%;position:relative">현재가<span class="col-resizer"></span></th>
-            <th style="width:20%;position:relative">전일대비<span class="col-resizer"></span></th>
-            <th style="width:20%">상태</th>
+            <th style="width:16%;position:relative">종목명<span class="col-resizer"></span></th>
+            <th style="width:14%;position:relative">티커<span class="col-resizer"></span></th>
+            <th style="width:14%;position:relative">현재가<span class="col-resizer"></span></th>
+            <th style="width:14%;position:relative">전일대비<span class="col-resizer"></span></th>
+            <th style="width:14%;position:relative">섹션<span class="col-resizer"></span></th>
+            <th style="width:14%;position:relative">자산구분<span class="col-resizer"></span></th>
+            <th style="width:14%">테마</th>
           </tr></thead>
           <tbody id="stocksBody"></tbody>
         </table>
@@ -276,6 +276,7 @@ tbody tr:last-child td{border-bottom:none;}
       <style>
         .col-resizer{position:absolute;right:0;top:0;width:6px;height:100%;cursor:col-resize;background:transparent;z-index:1;}
         .col-resizer:hover,.col-resizer.dragging{background:rgba(59,123,255,0.5);}
+        .meta-select{background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11px;outline:none;cursor:pointer;width:100%;}
       </style>
       <div id="stocksEmpty" class="empty-state"><div>📈</div>구글 시트에 종목을 추가하면<br>여기에 표시돼요!</div>
     </div>
@@ -340,6 +341,32 @@ function fetchLiveData(manual) {
     });
 }
 
+// 종목별 메타데이터 저장소
+var stockMeta = {};
+function getStockMeta(name) {
+  if (!stockMeta[name]) stockMeta[name] = {section:'', asset:'', theme:''};
+  return stockMeta[name];
+}
+function updateStockMeta(name, key, val) {
+  if (!stockMeta[name]) stockMeta[name] = {section:'', asset:'', theme:''};
+  stockMeta[name][key] = val;
+}
+
+var sectionOpts = ['','성장주','배당주','가치주','ETF','리츠'];
+var assetOpts   = ['','위험자산','안전자산','중립'];
+var themeOpts   = ['','반도체','은행','식품','바이오','자동차','에너지','IT','유통','화학','건설','통신'];
+
+function makeSelect(name, key, opts, cur) {
+  var op = opts.map(function(o){ return '<option value="'+o+'"'+(o===cur?' selected':'')+'>'+( o||'선택'  )+'</option>'; }).join('');
+  return '<select class="meta-select" onchange="updateStockMeta(\''+name+'\',\''+key+'\',this.value);saveStockMeta()">'+op+'</select>';
+}
+function saveStockMeta() {
+  try { localStorage.setItem('stockMeta', JSON.stringify(stockMeta)); } catch(e){}
+}
+function loadStockMeta() {
+  try { var d = localStorage.getItem('stockMeta'); if(d) stockMeta = JSON.parse(d); } catch(e){}
+}
+
 // 종목 현황
 function renderStocksPage() {
   var stocks = (liveData.stocks || []);
@@ -358,23 +385,32 @@ function renderStocksPage() {
     var pct = Number(s.changePct) || 0;
     var cls = pct > 0 ? 'up' : pct < 0 ? 'dn' : '';
     var arrow = pct > 0 ? '▲' : pct < 0 ? '▼' : '─';
+    var meta = getStockMeta(s.name);
     return '<div class="card" style="padding:16px;animation:none">'
       + '<div style="font-size:12px;font-weight:600;margin-bottom:4px">' + s.name + '</div>'
       + '<div style="font-size:10px;color:var(--muted);margin-bottom:10px">' + s.ticker + '</div>'
       + '<div style="font-size:20px;font-weight:600;font-family:\'DM Mono\',monospace">₩' + Number(s.price).toLocaleString('ko-KR') + '</div>'
-      + '<div class="' + cls + '" style="font-size:12px;font-weight:500;margin-top:6px">' + arrow + ' ' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%</div></div>';
+      + '<div class="' + cls + '" style="font-size:12px;font-weight:500;margin-top:6px;margin-bottom:12px">' + arrow + ' ' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%</div>'
+      + '<div style="display:flex;flex-direction:column;gap:6px">'
+      + makeSelect(s.name,'section',sectionOpts,meta.section)
+      + makeSelect(s.name,'asset',assetOpts,meta.asset)
+      + makeSelect(s.name,'theme',themeOpts,meta.theme)
+      + '</div></div>';
   }).join('');
   tbody.innerHTML = stocks.map(function(s) {
     var pct = Number(s.changePct) || 0;
     var cls = pct > 0 ? 'up' : pct < 0 ? 'dn' : '';
     var arrow = pct > 0 ? '▲' : pct < 0 ? '▼' : '─';
-    var badge = pct > 0 ? '<span class="type-badge buy">상승</span>' : pct < 0 ? '<span class="type-badge sell">하락</span>' : '<span style="color:var(--muted)">보합</span>';
+    var meta = getStockMeta(s.name);
     return '<tr>'
       + '<td style="font-weight:500">' + s.name + '</td>'
       + '<td style="color:var(--muted);font-size:11px">' + s.ticker + '</td>'
       + '<td style="font-family:\'DM Mono\',monospace;font-weight:500">₩' + Number(s.price).toLocaleString('ko-KR') + '</td>'
       + '<td class="' + cls + '" style="font-weight:500">' + arrow + ' ' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%</td>'
-      + '<td>' + badge + '</td></tr>';
+      + '<td>' + makeSelect(s.name,'section',sectionOpts,meta.section) + '</td>'
+      + '<td>' + makeSelect(s.name,'asset',assetOpts,meta.asset) + '</td>'
+      + '<td>' + makeSelect(s.name,'theme',themeOpts,meta.theme) + '</td>'
+      + '</tr>';
   }).join('');
 }
 
@@ -444,20 +480,17 @@ function renderTable() {
     var avg = s.totalQty > 0 ? s.totalBuy / s.totalQty : 0;
     var live = getLive(s.stock);
     var cur = (live && live.price) ? live.price : avg;
-    var pct = avg > 0 ? ((cur - avg) / avg * 100) : 0;
-    var chg = live ? Number(live.changePct) : 0;
-    var trend = pct >= 0 ? 'up' : 'dn';
-    var w=60, h=28, pts=[];
-    for (var i=0; i<8; i++) pts.push([i*(w/7), h/2+(Math.random()-0.5)*16]);
-    if (trend==='up') { pts[7][1]=6; pts[0][1]=h-6; } else { pts[7][1]=h-6; pts[0][1]=6; }
-    var d = pts.map(function(p,i){ return (i===0?'M':'L')+p[0]+','+p[1]; }).join(' ');
-    var col = trend==='up' ? '#22d87a' : '#ff4d6a';
-    return '<tr><td><div class="stock-name-cell"><div class="mini-icon">' + s.stock[0] + '</div><span style="font-weight:500">' + s.stock + '</span></div></td>'
+    var curVal = cur * s.totalQty;
+    var profit = curVal - s.totalBuy;
+    var pct = s.totalBuy > 0 ? (profit / s.totalBuy * 100) : 0;
+    return '<tr>'
+      + '<td><div class="stock-name-cell"><div class="mini-icon">' + s.stock[0] + '</div><span style="font-weight:500">' + s.stock + '</span></div></td>'
+      + '<td class="mono">' + s.totalQty.toLocaleString('ko-KR') + '주</td>'
       + '<td class="mono">₩' + Math.round(cur).toLocaleString('ko-KR') + '</td>'
-      + '<td class="' + (chg>=0?'up':'dn') + '" style="font-weight:500">' + (chg>=0?'+':'') + chg.toFixed(2) + '%</td>'
-      + '<td class="mono" style="color:var(--muted)">₩' + Math.round(avg).toLocaleString('ko-KR') + '</td>'
       + '<td class="' + (pct>=0?'up':'dn') + '" style="font-weight:500">' + (pct>=0?'+':'') + pct.toFixed(2) + '%</td>'
-      + '<td><svg class="sparkline" viewBox="0 0 60 28"><path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="1.5" stroke-linecap="round"/><circle cx="' + pts[7][0] + '" cy="' + pts[7][1] + '" r="2.5" fill="' + col + '"/></svg></td></tr>';
+      + '<td class="' + (profit>=0?'up':'dn') + '" style="font-weight:500">' + (profit>=0?'+':'') + Math.round(profit).toLocaleString('ko-KR') + '원</td>'
+      + '<td class="mono" style="color:var(--muted)">₩' + Math.round(s.totalBuy).toLocaleString('ko-KR') + '</td>'
+      + '</tr>';
   }).join('');
 }
 function renderWatchlist() {
@@ -634,6 +667,7 @@ document.querySelectorAll('.col-resizer').forEach(function(resizer) {
     document.addEventListener('mouseup', onUp);
   });
 });
+loadStockMeta();
 renderPortfolio(); renderPerfChart('3m'); renderTable(); renderWatchlist(); renderJournal(); renderStocksPage(); updateSamsungTotal();
 fetchLiveData(false);
 </script>
