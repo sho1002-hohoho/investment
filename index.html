@@ -33,11 +33,19 @@ function openCashModal(type) {
   document.getElementById('cashModalOverlay').classList.add('open');
 }
 function closeCashModal() { document.getElementById('cashModalOverlay').classList.remove('open'); }
+function openModal() {
+  document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
+  ['fStock','fQty','fBuyPrice','fSellPrice','fTotalBuy','fTotalSell','fProfit','fNote'].forEach(function(id){ document.getElementById(id).value = ''; });
+  document.getElementById('fProfit').style.color = 'var(--muted)';
+  if (typeof setType === 'function') setType('buy');
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
 function saveCashEntry() {
   var amount = parseFloat(document.getElementById('cAmount').value) || 0;
   if (!amount) { alert('금액을 입력해주세요.'); return; }
-  if (!window.cashEntries) window.cashEntries = [];
-  window.cashEntries.unshift({
+  if (!window._cashEntries) window._cashEntries = [];
+  window._cashEntries.unshift({
     id: Date.now(),
     date: document.getElementById('cDate').value,
     type: window._cashType || 'in',
@@ -46,7 +54,7 @@ function saveCashEntry() {
     note: document.getElementById('cNote').value
   });
   closeCashModal();
-  if (typeof renderCashJournal === 'function') renderCashJournal();
+  if (typeof window.renderCashJournal === 'function') window.renderCashJournal();
 }
 var pageDescs = {};
 function loadPageDescs(){try{var d=localStorage.getItem('pageDescs');if(d)pageDescs=JSON.parse(d);}catch(e){}}
@@ -243,15 +251,54 @@ tbody tr:last-child td{border-bottom:none;}
       </div>
     </div>
     <div class="card">
-      <div class="chart-header"><span class="chart-title">수익률 추이</span>
-        <div class="time-tabs"><div class="time-tab" data-range="1w">1W</div><div class="time-tab" data-range="1m">1M</div><div class="time-tab active" data-range="3m">3M</div><div class="time-tab" data-range="all">전체</div></div>
+      <div class="chart-header">
+        <span class="chart-title">수익률 추이</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <select id="chartAccount" onchange="renderPerfChart(currentChartRange, this.value)" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11.5px;outline:none;cursor:pointer">
+            <option value="삼성계좌">삼성계좌</option>
+            <option value="ISA">ISA</option>
+            <option value="CMA">CMA</option>
+            <option value="연금저축">연금저축</option>
+            <option value="해외계좌">해외계좌</option>
+          </select>
+          <div class="time-tabs">
+            <div class="time-tab" data-range="1w">1W</div>
+            <div class="time-tab" data-range="1m">1M</div>
+            <div class="time-tab active" data-range="3m">3M</div>
+            <div class="time-tab" data-range="6m">6M</div>
+            <div class="time-tab" data-range="1y">1Y</div>
+          </div>
+        </div>
       </div>
       <div class="chart-wrap"><canvas id="perfChart"></canvas><div class="chart-tooltip" id="chartTip"><div class="t-date" id="tipDate"></div><div class="t-val" id="tipVal"></div></div></div>
     </div>
     <div class="row" style="align-items:flex-start">
       <div class="card overview-card">
         <div class="card-header"><span style="font-size:13.5px;font-weight:500">Portfolio Overview</span></div>
-        <table><thead><tr><th>종목</th><th>수익(원)</th><th>1주당 평가금액</th><th>평가금액</th></tr></thead><tbody id="stockTable"></tbody></table>
+        <table>
+          <thead>
+            <tr style="background:var(--surface3)">
+              <th colspan="4" style="font-size:11px;font-weight:600;color:var(--muted);padding:8px 0;letter-spacing:0.5px">현금</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="stock-name-cell"><div class="mini-icon" style="background:rgba(34,216,122,0.15);color:var(--green)">₩</div><span style="font-weight:500">예수금</span></div></td>
+              <td></td>
+              <td></td>
+              <td class="mono" id="overviewCash" style="font-weight:500;color:var(--green)">₩0</td>
+            </tr>
+          </tbody>
+          <thead>
+            <tr><td colspan="4" style="height:12px;border:none"></td></tr>
+            <tr style="background:var(--surface3)">
+              <th colspan="4" style="font-size:11px;font-weight:600;color:var(--muted);padding:8px 0;letter-spacing:0.5px">주식</th>
+            </tr>
+            <tr><td colspan="4" style="height:8px;border:none"></td></tr>
+            <tr><th>종목</th><th>수익(원)</th><th>1주당 평가금액</th><th>평가금액</th></tr>
+          </thead>
+          <tbody id="stockTable"></tbody>
+        </table>
       </div>
       <div class="card" style="flex:1;min-width:220px">
         <div class="card-header"><span style="font-size:13.5px;font-weight:500">종목 비중</span></div>
@@ -263,6 +310,208 @@ tbody tr:last-child td{border-bottom:none;}
           </div>
         </div>
         <div id="donutLegend" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: ISA & CMA -->
+<div class="page" id="page-isa">
+  <header class="topbar">
+    <div class="topbar-right">
+      <div id="apiStatusIsa" class="api-status loading">&#9679; 연결 중...</div>
+      <div class="user-chip"><div class="avatar">NR</div><div class="user-info"><div class="user-name">Naya Rachel</div><div class="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="344655575c5158745359555d581a575b59">[email&#160;protected]</a></div></div></div>
+    </div>
+  </header>
+  <div class="content">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+      <h2 style="font-size:20px;font-weight:600;letter-spacing:-0.5px">ISA &amp; CMA</h2>
+      <span class="live-dot"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <p id="isaDesc" style="color:var(--muted);font-size:12px">ISA &amp; CMA 계좌</p>
+      <button onclick="editDesc('isaDesc')" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:2px;display:flex;align-items:center">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+    </div>
+    <div class="row">
+      <div class="card holding-card">
+        <div class="card-header"><span class="card-title">Total Asset</span></div>
+        <div class="total-amount" id="totalAmountIsa">&#8361; 0</div>
+        <div class="return-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span id="totalReturnIsa">거래일지에서 추가하세요</span></div>
+      </div>
+      <div class="card portfolio-card">
+        <div class="portfolio-header"><span style="font-size:13.5px;font-weight:500">My Portfolio</span></div>
+        <div class="portfolio-stocks" id="portfolioStocksIsa"></div>
+      </div>
+    </div>
+    <div class="row" style="align-items:flex-start">
+      <div class="card overview-card">
+        <div class="card-header"><span style="font-size:13.5px;font-weight:500">Portfolio Overview</span></div>
+        <table>
+          <thead>
+            <tr style="background:var(--surface3)"><th colspan="4" style="font-size:11px;font-weight:600;color:var(--muted);padding:8px 0">현금</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="stock-name-cell"><div class="mini-icon" style="background:rgba(34,216,122,0.15);color:var(--green)">₩</div><span style="font-weight:500">예수금</span></div></td>
+              <td></td><td></td>
+              <td class="mono" id="overviewCashIsa" style="font-weight:500;color:var(--green)">₩0</td>
+            </tr>
+          </tbody>
+          <thead>
+            <tr><td colspan="4" style="height:12px;border:none"></td></tr>
+            <tr style="background:var(--surface3)"><th colspan="4" style="font-size:11px;font-weight:600;color:var(--muted);padding:8px 0">주식</th></tr>
+            <tr><td colspan="4" style="height:8px;border:none"></td></tr>
+            <tr><th>종목</th><th>수익(원)</th><th>1주당 평가금액</th><th>평가금액</th></tr>
+          </thead>
+          <tbody id="stockTableIsa"></tbody>
+        </table>
+      </div>
+      <div class="card" style="flex:1;min-width:220px">
+        <div class="card-header"><span style="font-size:13.5px;font-weight:500">종목 비중</span></div>
+        <div style="position:relative;width:260px;margin:0 auto 16px">
+          <canvas id="donutChartIsa" width="260" height="145"></canvas>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-20%);text-align:center;pointer-events:none">
+            <div style="font-size:11px;color:var(--muted)">총 자산</div>
+            <div id="donutTotalIsa" style="font-size:15px;font-weight:600;font-family:'DM Mono',monospace">₩0</div>
+          </div>
+        </div>
+        <div id="donutLegendIsa" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: 연금저축 -->
+<div class="page" id="page-pension">
+  <header class="topbar">
+    <div class="topbar-right">
+      <div class="user-chip"><div class="avatar">NR</div><div class="user-info"><div class="user-name">Naya Rachel</div><div class="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="94e6f5f7fcf1f8d4f3f9f5fdf8baf7fbf9">[email&#160;protected]</a></div></div></div>
+    </div>
+  </header>
+  <div class="content">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+      <h2 style="font-size:20px;font-weight:600;letter-spacing:-0.5px">연금저축</h2>
+      <span class="live-dot"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <p id="pensionDesc" style="color:var(--muted);font-size:12px">연금저축 계좌</p>
+      <button onclick="editDesc('pensionDesc')" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:2px;display:flex;align-items:center">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+    </div>
+    <div class="row">
+      <div class="card holding-card">
+        <div class="card-header"><span class="card-title">Total Asset</span></div>
+        <div class="total-amount" id="totalAmountPension">&#8361; 0</div>
+        <div class="return-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span id="totalReturnPension">거래일지에서 추가하세요</span></div>
+      </div>
+      <div class="card portfolio-card">
+        <div class="portfolio-header"><span style="font-size:13.5px;font-weight:500">My Portfolio</span></div>
+        <div class="portfolio-stocks" id="portfolioStocksPension"></div>
+      </div>
+    </div>
+    <div class="row" style="align-items:flex-start">
+      <div class="card overview-card">
+        <div class="card-header"><span style="font-size:13.5px;font-weight:500">Portfolio Overview</span></div>
+        <table>
+          <thead>
+            <tr style="background:var(--surface3)"><th colspan="4" style="font-size:11px;font-weight:600;color:var(--muted);padding:8px 0">현금</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="stock-name-cell"><div class="mini-icon" style="background:rgba(34,216,122,0.15);color:var(--green)">₩</div><span style="font-weight:500">예수금</span></div></td>
+              <td></td><td></td>
+              <td class="mono" id="overviewCashPension" style="font-weight:500;color:var(--green)">₩0</td>
+            </tr>
+          </tbody>
+          <thead>
+            <tr><td colspan="4" style="height:12px;border:none"></td></tr>
+            <tr style="background:var(--surface3)"><th colspan="4" style="font-size:11px;font-weight:600;color:var(--muted);padding:8px 0">주식</th></tr>
+            <tr><td colspan="4" style="height:8px;border:none"></td></tr>
+            <tr><th>종목</th><th>수익(원)</th><th>1주당 평가금액</th><th>평가금액</th></tr>
+          </thead>
+          <tbody id="stockTablePension"></tbody>
+        </table>
+      </div>
+      <div class="card" style="flex:1;min-width:220px">
+        <div class="card-header"><span style="font-size:13.5px;font-weight:500">종목 비중</span></div>
+        <div style="position:relative;width:260px;margin:0 auto 16px">
+          <canvas id="donutChartPension" width="260" height="145"></canvas>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-20%);text-align:center;pointer-events:none">
+            <div style="font-size:11px;color:var(--muted)">총 자산</div>
+            <div id="donutTotalPension" style="font-size:15px;font-weight:600;font-family:'DM Mono',monospace">₩0</div>
+          </div>
+        </div>
+        <div id="donutLegendPension" style="display:flex;flex-direction:column;gap:6px"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAGE: 해외계좌 -->
+<div class="page" id="page-overseas">
+  <header class="topbar">
+    <div class="topbar-right">
+      <div class="user-chip"><div class="avatar">NR</div><div class="user-info"><div class="user-name">Naya Rachel</div><div class="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="0f7d6e6c676a634f68626e6663216c6062">[email&#160;protected]</a></div></div></div>
+    </div>
+  </header>
+  <div class="content">
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
+      <h2 style="font-size:20px;font-weight:600;letter-spacing:-0.5px">해외계좌</h2>
+      <span class="live-dot"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <p id="overseasDesc" style="color:var(--muted);font-size:12px">해외 주식 계좌</p>
+      <button onclick="editDesc('overseasDesc')" style="background:none;border:none;cursor:pointer;color:var(--muted);padding:2px;display:flex;align-items:center">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+      </button>
+    </div>
+    <div class="row">
+      <div class="card holding-card">
+        <div class="card-header"><span class="card-title">Total Asset</span></div>
+        <div class="total-amount" id="totalAmountOverseas">&#8361; 0</div>
+        <div class="return-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg><span id="totalReturnOverseas">거래일지에서 추가하세요</span></div>
+      </div>
+      <div class="card portfolio-card">
+        <div class="portfolio-header"><span style="font-size:13.5px;font-weight:500">My Portfolio</span></div>
+        <div class="portfolio-stocks" id="portfolioStocksOverseas"></div>
+      </div>
+    </div>
+    <div class="row" style="align-items:flex-start">
+      <div class="card overview-card">
+        <div class="card-header"><span style="font-size:13.5px;font-weight:500">Portfolio Overview</span></div>
+        <table>
+          <thead>
+            <tr style="background:var(--surface3)"><th colspan="4" style="font-size:11px;font-weight:600;color:var(--muted);padding:8px 0">현금</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><div class="stock-name-cell"><div class="mini-icon" style="background:rgba(34,216,122,0.15);color:var(--green)">₩</div><span style="font-weight:500">예수금</span></div></td>
+              <td></td><td></td>
+              <td class="mono" id="overviewCashOverseas" style="font-weight:500;color:var(--green)">₩0</td>
+            </tr>
+          </tbody>
+          <thead>
+            <tr><td colspan="4" style="height:12px;border:none"></td></tr>
+            <tr style="background:var(--surface3)"><th colspan="4" style="font-size:11px;font-weight:600;color:var(--muted);padding:8px 0">주식</th></tr>
+            <tr><td colspan="4" style="height:8px;border:none"></td></tr>
+            <tr><th>종목</th><th>수익(원)</th><th>1주당 평가금액</th><th>평가금액</th></tr>
+          </thead>
+          <tbody id="stockTableOverseas"></tbody>
+        </table>
+      </div>
+      <div class="card" style="flex:1;min-width:220px">
+        <div class="card-header"><span style="font-size:13.5px;font-weight:500">종목 비중</span></div>
+        <div style="position:relative;width:260px;margin:0 auto 16px">
+          <canvas id="donutChartOverseas" width="260" height="145"></canvas>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-20%);text-align:center;pointer-events:none">
+            <div style="font-size:11px;color:var(--muted)">총 자산</div>
+            <div id="donutTotalOverseas" style="font-size:15px;font-weight:600;font-family:'DM Mono',monospace">₩0</div>
+          </div>
+        </div>
+        <div id="donutLegendOverseas" style="display:flex;flex-direction:column;gap:6px"></div>
       </div>
     </div>
   </div>
@@ -294,7 +543,7 @@ tbody tr:last-child td{border-bottom:none;}
         <div style="display:flex;gap:8px" id="tradeButtons">
           <label class="csv-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>가져오기<input type="file" accept=".csv" id="csvImportInput" style="display:none"></label>
           <button class="csv-btn" id="exportBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>내보내기</button>
-          <button class="add-btn" id="openModalBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>거래 추가</button>
+          <button class="add-btn" onclick="openModal()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>거래 추가</button>
         </div>
         <div style="display:flex;gap:8px;display:none" id="cashButtons">
           <button class="add-btn" style="background:var(--green)" onclick="openCashModal('in')"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>입금</button>
@@ -402,7 +651,7 @@ tbody tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 var SHEET_URL = 'https://script.google.com/macros/s/AKfycbwZD1EkBSlBDy5Mlr73loEDIwg7zYekUvIK3efeproPOqFJgzN3LcwIw0iC4skaLWcj/exec';
 var API_URL = 'https://corsproxy.io/?' + encodeURIComponent(SHEET_URL);
 var liveData = {stocks:[]};
@@ -428,6 +677,8 @@ function fetchLiveData(manual) {
         if (el) { el.className = 'api-status ok'; el.textContent = '● 실시간 연동'; }
       });
       renderPortfolio(); renderTable(); renderStocksPage(); updateSamsungTotal();
+      renderAllAccounts();
+      renderPerfChart(currentChartRange, '삼성계좌');
       if (manual) alert('갱신 완료!');
     })
     .catch(function() {
@@ -436,6 +687,22 @@ function fetchLiveData(manual) {
         if (el) { el.className = 'api-status err'; el.textContent = '● 연결 실패'; }
       });
     });
+}
+
+// 거래 → 구글 시트 자동 저장
+function postTradeToSheet(entry) {
+  fetch(SHEET_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+      date: entry.date,
+      type: entry.type,
+      stock: entry.stock,
+      account: entry.account,
+      qty: entry.qty,
+      bp: entry.bp,
+      sp: entry.sp
+    })
+  }).catch(function(){});
 }
 
 // 종목별 메타데이터 저장소
@@ -543,31 +810,68 @@ function renderPortfolio() {
       + '<div><div style="font-size:11px;font-weight:600">' + s.stock + '</div><div class="stock-units">' + s.totalQty + '주</div></div></div></div>';
   }).join('');
 }
-function renderPerfChart(range) {
-  range = range || '3m';
+var currentChartRange = '3m';
+var currentChartAccount = '삼성계좌';
+
+function renderPerfChart(range, account) {
+  range = range || currentChartRange;
+  account = account || currentChartAccount;
+  currentChartRange = range;
+  currentChartAccount = account;
+
   var ctx = document.getElementById('perfChart').getContext('2d');
-  var n = {'1w':7,'1m':30,'3m':90,'all':365}[range] || 90;
-  var labels = [], data = [], v = 10000000;
-  var now = new Date();
-  for (var i = n; i >= 0; i--) {
-    var d = new Date(now); d.setDate(d.getDate() - i);
-    labels.push(d.toLocaleDateString('ko-KR', {month:'short', day:'numeric'}));
-    v = Math.max(1000000, v + (Math.random() - 0.48) * 300000);
-    data.push(Math.round(v));
+  var history = (liveData.history || []).filter(function(h){ return h.account === account; });
+
+  // 기간 필터
+  var days = {'1w':7,'1m':30,'3m':90,'6m':180,'1y':365}[range] || 90;
+  var cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
+  history = history.filter(function(h){ return new Date(h.date) >= cutoff; });
+
+  var labels, data, color;
+  if (history.length > 1) {
+    // 실제 데이터
+    labels = history.map(function(h){ return new Date(h.date).toLocaleDateString('ko-KR',{month:'short',day:'numeric'}); });
+    data = history.map(function(h){ return h.profitRate; });
+    color = data[data.length-1] >= 0 ? '#22d87a' : '#ff4d6a';
+  } else {
+    // 데이터 없을 때 빈 차트
+    labels = ['데이터 없음'];
+    data = [0];
+    color = '#3b7bff';
   }
+
   var grad = ctx.createLinearGradient(0, 0, 0, 180);
-  grad.addColorStop(0, 'rgba(59,123,255,0.35)'); grad.addColorStop(1, 'rgba(59,123,255,0.01)');
+  grad.addColorStop(0, color.replace(')', ',0.35)').replace('rgb', 'rgba'));
+  grad.addColorStop(1, color.replace(')', ',0.01)').replace('rgb', 'rgba'));
+
   if (perfChart) perfChart.destroy();
-  perfChart = new Chart(ctx, {type:'line', data:{labels:labels, datasets:[{data:data, fill:true, backgroundColor:grad, borderColor:'#3b7bff', borderWidth:2, pointRadius:0, pointHoverRadius:5, tension:0.4}]},
-    options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}, tooltip:{enabled:false}},
-      scales:{x:{grid:{display:false}, ticks:{color:'#6b6b80', font:{size:10}, maxTicksLimit:8, maxRotation:0}, border:{display:false}},
-        y:{grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#6b6b80', font:{size:10}, callback:function(v){ return v>=1000000?(v/1000000).toFixed(0)+'M':v>=1000?(v/1000).toFixed(0)+'K':v; }, maxTicksLimit:5}, border:{display:false}}},
+  perfChart = new Chart(ctx, {
+    type:'line',
+    data:{labels:labels, datasets:[{
+      data:data, fill:true,
+      backgroundColor: color === '#22d87a' ? 'rgba(34,216,122,0.15)' : color === '#ff4d6a' ? 'rgba(255,77,106,0.15)' : 'rgba(59,123,255,0.15)',
+      borderColor: color, borderWidth:2, pointRadius:0, pointHoverRadius:5, tension:0.4
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{enabled:false}},
+      scales:{
+        x:{grid:{display:false}, ticks:{color:'#6b6b80', font:{size:10}, maxTicksLimit:8, maxRotation:0}, border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#6b6b80', font:{size:10}, callback:function(v){ return v.toFixed(1)+'%'; }, maxTicksLimit:5}, border:{display:false}}
+      },
       onHover:function(e, el) {
         var tip = document.getElementById('chartTip');
-        if (el.length) { var i = el[0].index; tip.style.display='block'; tip.style.left=(el[0].element.x-55)+'px'; tip.style.top=(el[0].element.y-62)+'px'; document.getElementById('tipDate').textContent=labels[i]; document.getElementById('tipVal').textContent='₩'+data[i].toLocaleString('ko-KR'); }
-        else tip.style.display = 'none';
+        if (el.length) {
+          var i = el[0].index;
+          tip.style.display='block';
+          tip.style.left=(el[0].element.x-55)+'px';
+          tip.style.top=(el[0].element.y-62)+'px';
+          document.getElementById('tipDate').textContent = labels[i];
+          document.getElementById('tipVal').textContent = (data[i]>=0?'+':'') + data[i].toFixed(2) + '%';
+        } else tip.style.display='none';
       }
-    }});
+    }
+  });
 }
 function renderTable() {
   var stocks = getSamsungStocks();
@@ -608,9 +912,15 @@ function renderDonut() {
     var cur = (live && live.price) ? live.price : (st.totalBuy / Math.max(st.totalQty,1));
     var v = cur * st.totalQty; total += v; return v;
   });
-  document.getElementById('donutTotal').textContent = '₩' + Math.round(total).toLocaleString('ko-KR');
+  // 삼성계좌 예수금
+  var cashEntries = window._cashEntries || [];
+  var cash = cashEntries.filter(function(e){ return e.account === '삼성계좌'; }).reduce(function(s,e){ return e.type==='in' ? s+e.amount : s-e.amount; }, 0);
+  if (cash > 0) { vals.push(cash); total += cash; }
   var labels = stocks.map(function(s){ return s.stock; });
+  if (cash > 0) labels.push('예수금(현금)');
   var colors = stocks.map(function(_,i){ return donutColors[i % donutColors.length]; });
+  if (cash > 0) colors.push('#6b6b80');
+  document.getElementById('donutTotal').textContent = '₩' + Math.round(total).toLocaleString('ko-KR');
   if (donutChart) donutChart.destroy();
   donutChart = new Chart(canvas, {
     type: 'doughnut',
@@ -655,7 +965,9 @@ function updateSamsungTotal() {
 document.querySelectorAll('.time-tab').forEach(function(t) {
   t.addEventListener('click', function() {
     document.querySelectorAll('.time-tab').forEach(function(x){ x.classList.remove('active'); });
-    t.classList.add('active'); renderPerfChart(t.dataset.range);
+    t.classList.add('active');
+    var acc = document.getElementById('chartAccount') ? document.getElementById('chartAccount').value : '삼성계좌';
+    renderPerfChart(t.dataset.range, acc);
   });
 });
 document.querySelectorAll('.filter-tabs').forEach(function(g) {
@@ -665,24 +977,30 @@ document.querySelectorAll('.filter-tabs').forEach(function(g) {
 });
 
 // 예수금 거래
-window.cashEntries = window.cashEntries || [];
+window._cashEntries = window._cashEntries || [];
 
-function deleteCashEntry(id) { window.cashEntries = window.cashEntries.filter(function(e){ return e.id !== id; }); renderCashJournal(); }
-function renderCashJournal() {
-  var cashEntries = window.cashEntries;
+function deleteCashEntry(id) { window._cashEntries = window._cashEntries.filter(function(e){ return e.id !== id; }); window.renderCashJournal(); }
+window.renderCashJournal = function renderCashJournal() {
+  var cashEntries = window._cashEntries;
   var tbody = document.getElementById('cashBody');
   var empty = document.getElementById('cashEmpty');
+  if (!tbody) return;
   var bal = cashEntries.reduce(function(s,e){ return e.type==='in' ? s+e.amount : s-e.amount; }, 0);
-  document.getElementById('cashBalance').textContent = '₩' + Math.round(bal).toLocaleString('ko-KR');
-  document.getElementById('cashBalance').style.color = bal >= 0 ? 'var(--green)' : 'var(--red)';
-  if (!cashEntries.length) { tbody.innerHTML = ''; empty.style.display = 'block'; return; }
-  empty.style.display = 'none';
+  var balEl = document.getElementById('cashBalance');
+  if (balEl) { balEl.textContent = '₩' + Math.round(bal).toLocaleString('ko-KR'); balEl.style.color = bal >= 0 ? 'var(--green)' : 'var(--red)'; }
+  var overviewCash = document.getElementById('overviewCash');
+  if (overviewCash) {
+    var samsungBal = cashEntries.filter(function(e){ return e.account === '삼성계좌'; }).reduce(function(s,e){ return e.type==='in' ? s+e.amount : s-e.amount; }, 0);
+    overviewCash.textContent = '₩' + Math.round(samsungBal).toLocaleString('ko-KR');
+    overviewCash.style.color = samsungBal >= 0 ? 'var(--green)' : 'var(--red)';
+  }
+  if (typeof renderDonut === 'function') renderDonut();
+  if (!cashEntries.length) { tbody.innerHTML = ''; if(empty) empty.style.display = 'block'; return; }
+  if(empty) empty.style.display = 'none';
   tbody.innerHTML = cashEntries.map(function(e) {
     var cls = e.type==='in' ? 'up' : 'dn';
     var sign = e.type==='in' ? '+' : '-';
-    var badge = e.type==='in'
-      ? '<span class="type-badge buy">입금</span>'
-      : '<span class="type-badge sell">출금</span>';
+    var badge = e.type==='in' ? '<span class="type-badge buy">입금</span>' : '<span class="type-badge sell">출금</span>';
     return '<tr>'
       + '<td style="color:var(--muted)">' + e.date + '</td>'
       + '<td>' + badge + '</td>'
@@ -692,7 +1010,7 @@ function renderCashJournal() {
       + '<td><button class="del-btn" onclick="deleteCashEntry(' + e.id + ')">&#10005;</button></td>'
       + '</tr>';
   }).join('');
-}
+};
 
 document.getElementById('cashModalOverlay').addEventListener('click', function(e){ if(e.target===document.getElementById('cashModalOverlay')) closeCashModal(); });
 document.addEventListener('keydown', function(e) {
@@ -719,22 +1037,125 @@ function calcTotal() {
   if (tb && ts) { pe.value = fmt(profit); pe.style.color = profit>=0 ? 'var(--green)' : 'var(--red)'; }
   else { pe.value = ''; pe.style.color = 'var(--muted)'; }
 }
-function openModal() {
-  document.getElementById('fDate').value = new Date().toISOString().slice(0,10);
-  ['fStock','fQty','fBuyPrice','fSellPrice','fTotalBuy','fTotalSell','fProfit','fNote'].forEach(function(id){ document.getElementById(id).value = ''; });
-  document.getElementById('fProfit').style.color = 'var(--muted)';
-  setType('buy');
-  document.getElementById('modalOverlay').classList.add('open');
+// 계좌별 공통 렌더 함수
+var accountDonutCharts = {};
+function getAccountStocks(accountName) {
+  var map = {};
+  entries.filter(function(e){ return e.account === accountName; }).forEach(function(e) {
+    if (!map[e.stock]) map[e.stock] = {stock:e.stock, totalQty:0, totalBuy:0, profit:0};
+    if (e.type==='buy') { map[e.stock].totalQty += e.qty; map[e.stock].totalBuy += e.tb; }
+    else map[e.stock].totalQty = Math.max(0, map[e.stock].totalQty - e.qty);
+    map[e.stock].profit += e.profit;
+  });
+  return Object.values(map).filter(function(s){ return s.totalQty > 0 || s.totalBuy > 0; });
 }
-function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
-function refreshAll() { renderJournal(); renderPortfolio(); renderTable(); renderStocksPage(); updateSamsungTotal(); }
+function renderAccountPage(accountName, ids) {
+  var stocks = getAccountStocks(accountName);
+  // 포트폴리오 카드
+  var pc = document.getElementById(ids.portfolio);
+  if (pc) {
+    if (!stocks.length) { pc.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:8px 0">거래일지에서 ' + accountName + '으로 거래를 추가하면 표시돼요.</div>'; }
+    else {
+      pc.innerHTML = stocks.map(function(s) {
+        var avg = s.totalQty > 0 ? s.totalBuy / s.totalQty : 0;
+        var live = getLive(s.stock);
+        var cur = (live && live.price) ? live.price : avg;
+        var pct = s.totalBuy > 0 ? ((cur*s.totalQty - s.totalBuy) / s.totalBuy * 100) : 0;
+        return '<div class="stock-card">'
+          + '<div class="stock-price">₩' + Math.round(cur).toLocaleString('ko-KR') + '</div>'
+          + '<div class="stock-change ' + (pct>=0?'up':'dn') + '">' + (pct>=0?'+':'') + pct.toFixed(2) + '%</div>'
+          + '<div class="stock-icon-row"><div class="stock-icon">' + s.stock[0] + '</div>'
+          + '<div><div style="font-size:11px;font-weight:600">' + s.stock + '</div><div class="stock-units">' + s.totalQty + '주</div></div></div></div>';
+      }).join('');
+    }
+  }
+  // 테이블
+  var tbody = document.getElementById(ids.table);
+  if (tbody) {
+    if (!stocks.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">거래를 추가하면 표시돼요.</td></tr>'; }
+    else {
+      tbody.innerHTML = stocks.map(function(s) {
+        var avg = s.totalQty > 0 ? s.totalBuy / s.totalQty : 0;
+        var live = getLive(s.stock);
+        var cur = (live && live.price) ? live.price : avg;
+        var curVal = cur * s.totalQty;
+        var profit = curVal - s.totalBuy;
+        var pct = s.totalBuy > 0 ? (profit / s.totalBuy * 100) : 0;
+        return '<tr>'
+          + '<td><div class="stock-name-cell"><div class="mini-icon">' + s.stock[0] + '</div>'
+          + '<div><div style="font-weight:500">' + s.stock + '</div>'
+          + '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">' + s.totalQty + '주</div></div></div></td>'
+          + '<td><div class="' + (profit>=0?'up':'dn') + '" style="font-weight:500">' + (profit>=0?'+':'') + Math.round(profit).toLocaleString('ko-KR') + '원</div>'
+          + '<div style="font-size:10.5px;margin-top:2px;color:' + (pct>=0?'var(--green)':'var(--red)') + '">' + (pct>=0?'+':'') + pct.toFixed(2) + '%</div></td>'
+          + '<td><div class="mono" style="font-weight:500">₩' + Math.round(cur).toLocaleString('ko-KR') + '</div>'
+          + '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">₩' + Math.round(avg).toLocaleString('ko-KR') + '</div></td>'
+          + '<td><div class="mono" style="font-weight:500">₩' + Math.round(curVal).toLocaleString('ko-KR') + '</div>'
+          + '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">₩' + Math.round(s.totalBuy).toLocaleString('ko-KR') + '</div></td>'
+          + '</tr>';
+      }).join('');
+    }
+  }
+  // Total Asset
+  var total = 0, cost = 0;
+  stocks.forEach(function(s) {
+    var live = getLive(s.stock);
+    var cur = (live && live.price) ? live.price : (s.totalBuy / Math.max(s.totalQty,1));
+    total += cur * s.totalQty; cost += s.totalBuy;
+  });
+  // 예수금
+  var cashEntries = window._cashEntries || [];
+  var cash = cashEntries.filter(function(e){ return e.account === accountName; }).reduce(function(s,e){ return e.type==='in' ? s+e.amount : s-e.amount; }, 0);
+  var cashEl = document.getElementById(ids.cash);
+  if (cashEl) { cashEl.textContent = '₩' + Math.round(cash).toLocaleString('ko-KR'); cashEl.style.color = cash >= 0 ? 'var(--green)' : 'var(--red)'; }
+  var amtEl = document.getElementById(ids.amount);
+  if (amtEl) amtEl.textContent = '₩ ' + Math.round(total).toLocaleString('ko-KR');
+  var retEl = document.getElementById(ids.ret);
+  if (retEl) {
+    if (cost > 0) { var p=total-cost; var pct=(p/cost*100).toFixed(2); retEl.textContent=(p>=0?'+':'')+pct+'% ('+(p>=0?'+':'')+Math.round(p).toLocaleString('ko-KR')+'원)'; retEl.style.color=p>=0?'var(--green)':'var(--red)'; }
+    else { retEl.textContent='거래일지에서 추가하세요'; retEl.style.color='var(--muted)'; }
+  }
+  // 도넛
+  var canvas = document.getElementById(ids.donut);
+  if (!canvas) return;
+  var vals = stocks.map(function(s) { var live=getLive(s.stock); var cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1)); return cur*s.totalQty; });
+  var labels = stocks.map(function(s){ return s.stock; });
+  var colors = stocks.map(function(_,i){ return donutColors[i%donutColors.length]; });
+  if (cash > 0) { vals.push(cash); labels.push('예수금'); colors.push('#6b6b80'); }
+  var dtotal = vals.reduce(function(a,b){ return a+b; }, 0);
+  var dtEl = document.getElementById(ids.donutTotal);
+  if (dtEl) dtEl.textContent = '₩' + Math.round(dtotal).toLocaleString('ko-KR');
+  if (accountDonutCharts[accountName]) accountDonutCharts[accountName].destroy();
+  accountDonutCharts[accountName] = new Chart(canvas, {
+    type:'doughnut', data:{labels:labels, datasets:[{data:vals, backgroundColor:colors, borderWidth:2, borderColor:'#111118'}]},
+    options:{responsive:false, rotation:-90, circumference:180, cutout:'70%', plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(ctx){var pct=dtotal>0?(ctx.parsed/dtotal*100).toFixed(1):0;return ctx.label+': '+pct+'%';}}}}}
+  });
+  var legendEl = document.getElementById(ids.legend);
+  if (legendEl) legendEl.innerHTML = labels.map(function(l,i){ var pct=dtotal>0?(vals[i]/dtotal*100).toFixed(1):'0.0'; return '<div style="display:flex;align-items:center;justify-content:space-between"><div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:50%;background:'+colors[i]+'"></div><span style="font-size:12px">'+l+'</span></div><span style="font-size:12px;font-weight:600;color:'+colors[i]+'">'+pct+'%</span></div>'; }).join('');
+}
+
+var accountConfigs = {
+  isa:     { portfolio:'portfolioStocksIsa',     table:'stockTableIsa',     cash:'overviewCashIsa',     amount:'totalAmountIsa',     ret:'totalReturnIsa',     donut:'donutChartIsa',     donutTotal:'donutTotalIsa',     legend:'donutLegendIsa' },
+  pension: { portfolio:'portfolioStocksPension', table:'stockTablePension', cash:'overviewCashPension', amount:'totalAmountPension', ret:'totalReturnPension', donut:'donutChartPension', donutTotal:'donutTotalPension', legend:'donutLegendPension' },
+  overseas:{ portfolio:'portfolioStocksOverseas',table:'stockTableOverseas',cash:'overviewCashOverseas',amount:'totalAmountOverseas',ret:'totalReturnOverseas',donut:'donutChartOverseas',donutTotal:'donutTotalOverseas',legend:'donutLegendOverseas' }
+};
+var accountNames = { isa:'ISA', pension:'연금저축', overseas:'해외계좌' };
+
+function renderAllAccounts() {
+  Object.keys(accountConfigs).forEach(function(key) {
+    renderAccountPage(accountNames[key], accountConfigs[key]);
+  });
+}
+
+function refreshAll() { renderJournal(); renderPortfolio(); renderTable(); renderDonut(); renderAllAccounts(); renderStocksPage(); updateSamsungTotal(); }
 function saveEntry() {
   var stock = document.getElementById('fStock').value.trim();
   if (!stock) { alert('종목명을 입력해주세요.'); return; }
   var qty = parseFloat(document.getElementById('fQty').value) || 0;
   var bp = parseFloat(document.getElementById('fBuyPrice').value) || 0;
   var sp = parseFloat(document.getElementById('fSellPrice').value) || 0;
-  entries.unshift({id:Date.now(), date:document.getElementById('fDate').value, type:currentType, stock:stock, account:document.getElementById('fAccount').value, qty:qty, bp:bp, sp:sp, tb:qty*bp, ts:qty*sp, profit:(qty*sp)-(qty*bp), note:document.getElementById('fNote').value});
+  var entry = {id:Date.now(), date:document.getElementById('fDate').value, type:currentType, stock:stock, account:document.getElementById('fAccount').value, qty:qty, bp:bp, sp:sp, tb:qty*bp, ts:qty*sp, profit:(qty*sp)-(qty*bp), note:document.getElementById('fNote').value};
+  entries.unshift(entry);
+  postTradeToSheet(entry);
   closeModal(); refreshAll();
 }
 function deleteEntry(id) { entries = entries.filter(function(e){ return e.id !== id; }); refreshAll(); }
@@ -809,7 +1230,6 @@ function importCSV(event) {
 // 이벤트 등록
 document.getElementById('typeBuy').addEventListener('click', function(){ setType('buy'); });
 document.getElementById('typeSell').addEventListener('click', function(){ setType('sell'); });
-document.getElementById('openModalBtn').addEventListener('click', openModal);
 document.getElementById('closeModalBtn').addEventListener('click', closeModal);
 document.getElementById('cancelBtn').addEventListener('click', closeModal);
 document.getElementById('saveBtn').addEventListener('click', saveEntry);
@@ -838,16 +1258,4 @@ document.querySelectorAll('.col-resizer').forEach(function(resizer) {
   });
 });
 loadStockMeta(); loadPageDescs(); applyPageDescs();
-entries = [{
-  id: 9999999,
-  date: '2026-03-27',
-  type: 'buy',
-  stock: '삼성전자',
-  account: '삼성계좌',
-  qty: 4,
-  bp: 180000,
-  sp: 0,
-  tb: 720000,
-  ts: 0,
-  profit: 0,
-  note: '예시 데이터 (
+ent
