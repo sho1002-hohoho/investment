@@ -164,7 +164,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="search-bar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Ask stocks ai anything"></div>
     <div class="topbar-right">
       <div id="apiStatus" class="api-status loading">&#9679; 연결 중...</div>
-      <div class="user-chip"><div class="avatar">NR</div><div class="user-info"><div class="user-name">Naya Rachel</div><div class="user-email">rachel@gmail.com</div></div></div>
+      <div class="user-chip"><div class="avatar">NR</div><div class="user-info"><div class="user-name">Naya Rachel</div><div class="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="2d5f4c4e4548416d4a404c4441034e4240">[email&#160;protected]</a></div></div></div>
     </div>
   </header>
   <div class="content">
@@ -205,7 +205,7 @@ tbody tr:last-child td{border-bottom:none;}
 <div class="page" id="page-journal">
   <header class="topbar">
     <span style="font-size:15px;font-weight:600">거래일지</span>
-    <div class="topbar-right"><div class="user-chip"><div class="avatar">NR</div><div class="user-info"><div class="user-name">Naya Rachel</div><div class="user-email">rachel@gmail.com</div></div></div></div>
+    <div class="topbar-right"><div class="user-chip"><div class="avatar">NR</div><div class="user-info"><div class="user-name">Naya Rachel</div><div class="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="95e7f4f6fdf0f9d5f2f8f4fcf9bbf6faf8">[email&#160;protected]</a></div></div></div></div>
   </header>
   <div class="journal-content">
     <div class="summary-row">
@@ -236,7 +236,7 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="topbar-right">
       <div id="apiStatus2" class="api-status loading">&#9679; 연결 중...</div>
       <button class="csv-btn" id="refreshBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>새로고침</button>
-      <div class="user-chip"><div class="avatar">NR</div><div class="user-info"><div class="user-name">Naya Rachel</div><div class="user-email">rachel@gmail.com</div></div></div>
+      <div class="user-chip"><div class="avatar">NR</div><div class="user-info"><div class="user-name">Naya Rachel</div><div class="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="1f6d7e7c777a735f78727e7673317c7072">[email&#160;protected]</a></div></div></div>
     </div>
   </header>
   <div class="journal-content">
@@ -250,7 +250,16 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="journal-table-wrap">
       <div class="journal-table-header"><span style="font-size:13.5px;font-weight:500">전체 종목 목록</span></div>
       <div style="overflow-x:auto">
-        <table class="jt"><thead><tr><th>종목명</th><th>티커</th><th>현재가</th><th>전일대비</th><th>상태</th></tr></thead><tbody id="stocksBody"></tbody></table>
+        <table class="jt" style="table-layout:fixed">
+          <thead><tr>
+            <th style="width:120px">종목명</th>
+            <th style="width:120px">티커</th>
+            <th style="width:120px">현재가</th>
+            <th style="width:120px">전일대비</th>
+            <th style="width:80px">상태</th>
+          </tr></thead>
+          <tbody id="stocksBody"></tbody>
+        </table>
       </div>
       <div id="stocksEmpty" class="empty-state"><div>📈</div>구글 시트에 종목을 추가하면<br>여기에 표시돼요!</div>
     </div>
@@ -279,7 +288,7 @@ tbody tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
-<script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 var SHEET_URL = 'https://script.google.com/macros/s/AKfycbwZD1EkBSlBDy5Mlr73loEDIwg7zYekUvIK3efeproPOqFJgzN3LcwIw0iC4skaLWcj/exec';
 var API_URL = 'https://corsproxy.io/?' + encodeURIComponent(SHEET_URL);
 var liveData = {stocks:[]};
@@ -597,16 +606,4 @@ document.getElementById('exportBtn').addEventListener('click', exportCSV);
 document.getElementById('csvImportInput').addEventListener('change', importCSV);
 document.getElementById('refreshBtn').addEventListener('click', function(){ fetchLiveData(true); });
 document.getElementById('modalOverlay').addEventListener('click', function(e){ if(e.target===document.getElementById('modalOverlay')) closeModal(); });
-['fQty','fBuyPrice','fSellPrice'].forEach(function(id){ document.getElementById(id).addEventListener('input', calcTotal); });
-document.addEventListener('keydown', function(e) {
-  if (!document.getElementById('modalOverlay').classList.contains('open')) return;
-  if (e.key==='Enter' && e.target.tagName!=='BUTTON') { e.preventDefault(); saveEntry(); }
-  if (e.key==='Escape') closeModal();
-});
-
-// INIT
-renderPortfolio(); renderPerfChart('3m'); renderTable(); renderWatchlist(); renderJournal(); renderStocksPage(); updateSamsungTotal();
-fetchLiveData(false);
-</script>
-</body>
-</html>
+['fQty','fBuyPrice','fSellPrice'].forEach(function(id){ document.getElementById(id).addEventListener('input', calcTotal)
