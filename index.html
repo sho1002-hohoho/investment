@@ -42,21 +42,49 @@ function openModal() {
   document.getElementById('modalOverlay').classList.add('open');
 }
 function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+function setType(t) {
+  window._currentType = t;
+  var buyBtn = document.getElementById('typeBuy');
+  var sellBtn = document.getElementById('typeSell');
+  if (buyBtn) buyBtn.className = 'type-btn buy' + (t==='buy' ? ' active' : '');
+  if (sellBtn) sellBtn.className = 'type-btn sell' + (t==='sell' ? ' active' : '');
+  if (typeof calcTotal === 'function') calcTotal();
+}
 function saveEntry() {
   var stock = document.getElementById('fStock').value.trim();
   if (!stock) { alert('종목명을 입력해주세요.'); return; }
   var qty = parseFloat(document.getElementById('fQty').value) || 0;
   var bp = parseFloat(document.getElementById('fBuyPrice').value) || 0;
   var sp = parseFloat(document.getElementById('fSellPrice').value) || 0;
+  var account = document.getElementById('fAccount').value;
+  var type = window._currentType || 'buy';
+
+  // 이동평균법으로 실현손익 계산 (오래된 순으로 처리)
+  var profit = 0;
+  if (type === 'sell') {
+    var prevEntries = (window._entries || []).filter(function(e){ return e.account === account && e.stock === stock; }).slice().reverse();
+    var totalQty = 0, totalBuy = 0;
+    prevEntries.forEach(function(e){
+      if (e.type === 'buy') {
+        totalQty += e.qty; totalBuy += e.qty * e.bp;
+      } else {
+        var avg = totalQty > 0 ? totalBuy / totalQty : 0;
+        totalQty = Math.max(0, totalQty - e.qty);
+        totalBuy = avg * totalQty;
+      }
+    });
+    var avgPrice = totalQty > 0 ? totalBuy / totalQty : 0;
+    profit = (sp - avgPrice) * qty;
+  }
+
   var entry = {
     id: Date.now(),
     date: document.getElementById('fDate').value,
-    type: window._currentType || 'buy',
-    stock: stock,
-    account: document.getElementById('fAccount').value,
+    type: type, stock: stock, account: account,
     qty: qty, bp: bp, sp: sp,
-    tb: qty*bp, ts: qty*sp,
-    profit: (qty*sp)-(qty*bp),
+    tb: type === 'buy' ? qty * bp : 0,
+    ts: type === 'sell' ? qty * sp : 0,
+    profit: profit,
     note: document.getElementById('fNote').value
   };
   window._entries = window._entries || [];
@@ -245,7 +273,7 @@ tbody tr:last-child td{border-bottom:none;}
       <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3b7bff,#a855f7);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:white;flex-shrink:0">NR</div>
       <div>
         <div style="font-size:12px;font-weight:500">Naya Rachel</div>
-        <div style="font-size:10.5px;color:var(--muted)">rachel@gmail.com</div>
+        <div style="font-size:10.5px;color:var(--muted)"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="94e6f5f7fcf1f8d4f3f9f5fdf8baf7fbf9">[email&#160;protected]</a></div>
       </div>
     </div>
     <div style="display:flex;align-items:center;justify-content:space-between">
@@ -671,7 +699,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="modal">
     <div class="modal-title">거래 추가<button class="modal-close" onclick="closeModal()">&#10005;</button></div>
     <div class="form-grid">
-      <div class="form-group full"><div class="form-label">매수 / 매도</div><div class="type-toggle"><button class="type-btn buy active" id="typeBuy">📈 매수</button><button class="type-btn sell" id="typeSell">📉 매도</button></div></div>
+      <div class="form-group full"><div class="form-label">매수 / 매도</div><div class="type-toggle"><button class="type-btn buy active" id="typeBuy" onclick="setType('buy')">📈 매수</button><button class="type-btn sell" id="typeSell" onclick="setType('sell')">📉 매도</button></div></div>
       <div class="form-group"><label class="form-label">날짜</label><input class="form-input" type="date" id="fDate"></div>
       <div class="form-group"><label class="form-label">종목명</label><input class="form-input" type="text" id="fStock" placeholder="예: 삼성전자"></div>
       <div class="form-group"><label class="form-label">매수계좌</label><select class="form-select" id="fAccount"><option>삼성계좌</option><option>ISA</option><option>CMA</option><option>연금저축</option><option>해외계좌</option></select></div>
@@ -688,7 +716,7 @@ tbody tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 var SHEET_URL = 'https://script.google.com/macros/s/AKfycbwZD1EkBSlBDy5Mlr73loEDIwg7zYekUvIK3efeproPOqFJgzN3LcwIw0iC4skaLWcj/exec';
 var API_URL = 'https://corsproxy.io/?' + encodeURIComponent(SHEET_URL);
 var liveData = {stocks:[]};
@@ -820,11 +848,18 @@ function renderStocksPage() {
 // 삼성계좌
 function getSamsungStocks() {
   var map = {};
-  (window._entries || []).filter(function(e){ return e.account === '삼성계좌'; }).forEach(function(e) {
-    if (!map[e.stock]) map[e.stock] = {stock:e.stock, totalQty:0, totalBuy:0, profit:0};
-    if (e.type === 'buy') { map[e.stock].totalQty += e.qty; map[e.stock].totalBuy += e.tb; }
-    else map[e.stock].totalQty = Math.max(0, map[e.stock].totalQty - e.qty);
-    map[e.stock].profit += e.profit;
+  var sorted = (window._entries || []).filter(function(e){ return e.account === '삼성계좌'; }).slice().reverse();
+  sorted.forEach(function(e) {
+    if (!map[e.stock]) map[e.stock] = {stock:e.stock, totalQty:0, totalBuy:0, realizedProfit:0};
+    if (e.type === 'buy') {
+      map[e.stock].totalQty += e.qty;
+      map[e.stock].totalBuy += e.qty * e.bp;
+    } else {
+      var avgPrice = map[e.stock].totalQty > 0 ? map[e.stock].totalBuy / map[e.stock].totalQty : 0;
+      map[e.stock].realizedProfit += (e.sp - avgPrice) * e.qty;
+      map[e.stock].totalQty = Math.max(0, map[e.stock].totalQty - e.qty);
+      map[e.stock].totalBuy = avgPrice * map[e.stock].totalQty;
+    }
   });
   return Object.values(map).filter(function(s){ return s.totalQty > 0 || s.totalBuy > 0; });
 }
@@ -1058,13 +1093,6 @@ document.addEventListener('keydown', function(e) {
     if (e.key==='Escape') closeCashModal();
   }
 });
-function setType(t) {
-  currentType = t;
-  window._currentType = t;
-  document.getElementById('typeBuy').className = 'type-btn buy' + (t==='buy' ? ' active' : '');
-  document.getElementById('typeSell').className = 'type-btn sell' + (t==='sell' ? ' active' : '');
-  calcTotal();
-}
 function fmt(n) { return n ? '₩' + Math.round(n).toLocaleString('ko-KR') : ''; }
 function calcTotal() {
   var qty = parseFloat(document.getElementById('fQty').value) || 0;
@@ -1081,11 +1109,18 @@ function calcTotal() {
 var accountDonutCharts = {};
 function getAccountStocks(accountName) {
   var map = {};
-  (window._entries || []).filter(function(e){ return e.account === accountName; }).forEach(function(e) {
-    if (!map[e.stock]) map[e.stock] = {stock:e.stock, totalQty:0, totalBuy:0, profit:0};
-    if (e.type==='buy') { map[e.stock].totalQty += e.qty; map[e.stock].totalBuy += e.tb; }
-    else map[e.stock].totalQty = Math.max(0, map[e.stock].totalQty - e.qty);
-    map[e.stock].profit += e.profit;
+  var sorted = (window._entries || []).filter(function(e){ return e.account === accountName; }).slice().reverse();
+  sorted.forEach(function(e) {
+    if (!map[e.stock]) map[e.stock] = {stock:e.stock, totalQty:0, totalBuy:0, realizedProfit:0};
+    if (e.type === 'buy') {
+      map[e.stock].totalQty += e.qty;
+      map[e.stock].totalBuy += e.qty * e.bp;
+    } else {
+      var avgPrice = map[e.stock].totalQty > 0 ? map[e.stock].totalBuy / map[e.stock].totalQty : 0;
+      map[e.stock].realizedProfit += (e.sp - avgPrice) * e.qty;
+      map[e.stock].totalQty = Math.max(0, map[e.stock].totalQty - e.qty);
+      map[e.stock].totalBuy = avgPrice * map[e.stock].totalQty;
+    }
   });
   return Object.values(map).filter(function(s){ return s.totalQty > 0 || s.totalBuy > 0; });
 }
@@ -1197,7 +1232,7 @@ function renderJournal() {
   if(empty) empty.style.display = 'none';
   tbody.innerHTML = entries.map(function(e) {
     var pc = e.profit > 0 ? 'profit-pos' : e.profit < 0 ? 'profit-neg' : '';
-    var ps = e.profit ? ((e.profit>0?'+':'') + fmt(e.profit)) : '-';
+    var ps = e.type === 'sell' ? ((e.profit>0?'+':'') + fmt(e.profit)) : '-';
     return '<tr><td>' + e.date + '</td>'
       + '<td><span class="type-badge ' + e.type + '">' + (e.type==='buy'?'매수':'매도') + '</span></td>'
       + '<td style="font-weight:500">' + e.stock + '</td>'
@@ -1259,8 +1294,7 @@ function importCSV(event) {
 }
 
 // 이벤트 등록
-document.getElementById('typeBuy').addEventListener('click', function(){ setType('buy'); });
-document.getElementById('typeSell').addEventListener('click', function(){ setType('sell'); });
+// typeBuy, typeSell은 onclick으로 처리됨
 // closeModalBtn은 onclick으로 처리됨
 // cancelBtn, saveBtn은 onclick으로 처리됨
 document.getElementById('exportBtn').addEventListener('click', exportCSV);
@@ -1287,22 +1321,9 @@ document.querySelectorAll('.col-resizer').forEach(function(resizer) {
     document.addEventListener('mouseup', onUp);
   });
 });
-loadStockMeta(); loadPageDescs(); applyPageDescs();window._entries = window._entries || [];
+loadStockMeta(); loadPageDescs(); applyPageDescs();
+window._entries = window._entries || [];
 window._cashEntries = window._cashEntries || [];
-window._entries = [{
-  id: 9999999,
-  date: '2026-03-27',
-  type: 'buy',
-  stock: '삼성전자',
-  account: '삼성계좌',
-  qty: 4,
-  bp: 180000,
-  sp: 0,
-  tb: 720000,
-  ts: 0,
-  profit: 0,
-  note: '예시 데이터 (나중에 삭제)'
-}];
 renderPortfolio(); renderPerfChart('3m', '삼성계좌'); renderTable(); renderWatchlist(); renderJournal(); window.renderCashJournal(); renderAllAccounts(); renderStocksPage(); updateSamsungTotal();
 fetchLiveData(false);
 </script>
