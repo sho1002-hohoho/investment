@@ -117,6 +117,40 @@ function editDesc(id){
   if(val!==null&&val.trim()!==''){el.textContent=val.trim();pageDescs[id]=val.trim();savePageDescs();}
 }
 function applyPageDescs(){Object.keys(pageDescs).forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=pageDescs[id];});}
+var accountCharts = {};
+function renderAccountChart(account, range, tabEl) {
+  var canvasMap = {'ISA':'perfChartIsa','연금저축':'perfChartPension','해외계좌':'perfChartOverseas'};
+  var canvasId = canvasMap[account];
+  if (!canvasId) return;
+  var canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  if (tabEl) {
+    var siblings = tabEl.parentElement.querySelectorAll('.time-tab');
+    siblings.forEach(function(t){ t.classList.remove('active'); });
+    tabEl.classList.add('active');
+  }
+  var history = ((typeof liveData !== 'undefined' && liveData.history) || []).filter(function(h){ return h.account === account; });
+  var days = {'1w':7,'1m':30,'3m':90,'6m':180,'1y':365}[range] || 90;
+  var cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
+  history = history.filter(function(h){ return new Date(h.date) >= cutoff; });
+  var labels, data, color;
+  if (history.length > 1) {
+    labels = history.map(function(h){ return new Date(h.date).toLocaleDateString('ko-KR',{month:'short',day:'numeric'}); });
+    data = history.map(function(h){ return h.profitRate; });
+    color = data[data.length-1] >= 0 ? '#22d87a' : '#ff4d6a';
+  } else { labels = ['데이터 없음']; data = [0]; color = '#3b7bff'; }
+  var ctx = canvas.getContext('2d');
+  var bgColor = color==='#22d87a'?'rgba(34,216,122,0.15)':color==='#ff4d6a'?'rgba(255,77,106,0.15)':'rgba(59,123,255,0.15)';
+  if (accountCharts[account]) accountCharts[account].destroy();
+  accountCharts[account] = new Chart(ctx, {
+    type:'line',
+    data:{labels:labels, datasets:[{data:data, fill:true, backgroundColor:bgColor, borderColor:color, borderWidth:2, pointRadius:0, pointHoverRadius:5, tension:0.4}]},
+    options:{responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(c){return (c.parsed.y>=0?'+':'')+c.parsed.y.toFixed(2)+'%';} }}},
+      scales:{x:{grid:{display:false},ticks:{color:'#6b6b80',font:{size:10},maxTicksLimit:8,maxRotation:0},border:{display:false}},
+        y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b6b80',font:{size:10},callback:function(v){return v.toFixed(1)+'%';},maxTicksLimit:5},border:{display:false}}}}
+  });
+}
 </script>
 <style>
 :root{--bg:#0a0a0f;--surface:#111118;--surface2:#16161f;--surface3:#1c1c28;--border:rgba(255,255,255,0.06);--text:#f0f0f5;--muted:#6b6b80;--accent:#3b7bff;--accent2:#4e8bff;--green:#22d87a;--red:#ff4d6a;--green-dim:rgba(34,216,122,0.12);--red-dim:rgba(255,77,106,0.12);}
@@ -261,10 +295,10 @@ tbody tr:last-child td{border-bottom:none;}
   <div class="nav-label">Main Menu</div>
   <div class="nav-item" onclick="goTo('dashboard')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>대시보드</div>
   <div class="nav-item" onclick="goTo('weight')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>투자 비중</div>
-  <div class="nav-item active" id="nav-samsung" onclick="goTo('samsung')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>삼성계좌</div>
+  <div class="nav-item active" id="nav-samsung" onclick="goTo('samsung')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>국내주식</div>
   <div class="nav-item" onclick="goTo('isa')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>ISA &amp; CMA</div>
   <div class="nav-item" onclick="goTo('pension')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>연금저축</div>
-  <div class="nav-item" onclick="goTo('overseas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>해외계좌</div>
+  <div class="nav-item" onclick="goTo('overseas')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>해외주식</div>
   <div class="nav-item" onclick="goTo('journal')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>거래일지</div>
   <div class="nav-item" onclick="goTo('stocks')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>종목 현황</div>
   <div class="sidebar-spacer"></div>
@@ -295,7 +329,7 @@ tbody tr:last-child td{border-bottom:none;}
   </header>
   <div class="content">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
-      <h2 style="font-size:20px;font-weight:600;letter-spacing:-0.5px">삼성계좌</h2>
+      <h2 style="font-size:20px;font-weight:600;letter-spacing:-0.5px">국내주식</h2>
       <span class="live-dot"></span>
     </div>
     <div style="display:flex;align-items:center;gap:6px">
@@ -410,6 +444,19 @@ tbody tr:last-child td{border-bottom:none;}
         <div class="portfolio-stocks" id="portfolioStocksIsa"></div>
       </div>
     </div>
+    <div class="card">
+      <div class="chart-header">
+        <span class="chart-title">수익률 추이</span>
+        <div class="time-tabs">
+          <div class="time-tab" onclick="renderAccountChart('ISA','1w',this)">1W</div>
+          <div class="time-tab" onclick="renderAccountChart('ISA','1m',this)">1M</div>
+          <div class="time-tab active" onclick="renderAccountChart('ISA','3m',this)">3M</div>
+          <div class="time-tab" onclick="renderAccountChart('ISA','6m',this)">6M</div>
+          <div class="time-tab" onclick="renderAccountChart('ISA','1y',this)">1Y</div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="perfChartIsa"></canvas></div>
+    </div>
     <div class="row" style="align-items:flex-start">
       <div class="card overview-card">
         <div class="card-header"><span style="font-size:13.5px;font-weight:500">Portfolio Overview</span></div>
@@ -477,6 +524,19 @@ tbody tr:last-child td{border-bottom:none;}
         <div class="portfolio-stocks" id="portfolioStocksPension"></div>
       </div>
     </div>
+    <div class="card">
+      <div class="chart-header">
+        <span class="chart-title">수익률 추이</span>
+        <div class="time-tabs">
+          <div class="time-tab" onclick="renderAccountChart('연금저축','1w',this)">1W</div>
+          <div class="time-tab" onclick="renderAccountChart('연금저축','1m',this)">1M</div>
+          <div class="time-tab active" onclick="renderAccountChart('연금저축','3m',this)">3M</div>
+          <div class="time-tab" onclick="renderAccountChart('연금저축','6m',this)">6M</div>
+          <div class="time-tab" onclick="renderAccountChart('연금저축','1y',this)">1Y</div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="perfChartPension"></canvas></div>
+    </div>
     <div class="row" style="align-items:flex-start">
       <div class="card overview-card">
         <div class="card-header"><span style="font-size:13.5px;font-weight:500">Portfolio Overview</span></div>
@@ -524,7 +584,7 @@ tbody tr:last-child td{border-bottom:none;}
   </header>
   <div class="content">
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:4px">
-      <h2 style="font-size:20px;font-weight:600;letter-spacing:-0.5px">해외계좌</h2>
+      <h2 style="font-size:20px;font-weight:600;letter-spacing:-0.5px">해외주식</h2>
       <span class="live-dot"></span>
     </div>
     <div style="display:flex;align-items:center;gap:6px">
@@ -543,6 +603,19 @@ tbody tr:last-child td{border-bottom:none;}
         <div class="portfolio-header"><span style="font-size:13.5px;font-weight:500">My Portfolio</span></div>
         <div class="portfolio-stocks" id="portfolioStocksOverseas"></div>
       </div>
+    </div>
+    <div class="card">
+      <div class="chart-header">
+        <span class="chart-title">수익률 추이</span>
+        <div class="time-tabs">
+          <div class="time-tab" onclick="renderAccountChart('해외계좌','1w',this)">1W</div>
+          <div class="time-tab" onclick="renderAccountChart('해외계좌','1m',this)">1M</div>
+          <div class="time-tab active" onclick="renderAccountChart('해외계좌','3m',this)">3M</div>
+          <div class="time-tab" onclick="renderAccountChart('해외계좌','6m',this)">6M</div>
+          <div class="time-tab" onclick="renderAccountChart('해외계좌','1y',this)">1Y</div>
+        </div>
+      </div>
+      <div class="chart-wrap"><canvas id="perfChartOverseas"></canvas></div>
     </div>
     <div class="row" style="align-items:flex-start">
       <div class="card overview-card">
@@ -701,7 +774,10 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="form-grid">
       <div class="form-group full"><div class="form-label">매수 / 매도</div><div class="type-toggle"><button class="type-btn buy active" id="typeBuy" onclick="setType('buy')">📈 매수</button><button class="type-btn sell" id="typeSell" onclick="setType('sell')">📉 매도</button></div></div>
       <div class="form-group"><label class="form-label">날짜</label><input class="form-input" type="date" id="fDate"></div>
-      <div class="form-group"><label class="form-label">종목명</label><input class="form-input" type="text" id="fStock" placeholder="예: 삼성전자"></div>
+      <div class="form-group"><label class="form-label">종목명</label>
+        <input class="form-input" type="text" id="fStock" placeholder="예: 삼성전자" list="stockList" autocomplete="off">
+        <datalist id="stockList"></datalist>
+      </div>
       <div class="form-group"><label class="form-label">매수계좌</label><select class="form-select" id="fAccount"><option>삼성계좌</option><option>ISA</option><option>CMA</option><option>연금저축</option><option>해외계좌</option></select></div>
       <div class="form-group"><label class="form-label">수량</label><input class="form-input" type="number" id="fQty" placeholder="0"></div>
       <div class="form-group"><label class="form-label">매수단가 (원)</label><input class="form-input" type="number" id="fBuyPrice" placeholder="0"></div>
@@ -730,6 +806,13 @@ var perfChart = null;
 // 네비게이션은 goTo() 함수로 처리됨 (head에 정의)
 
 // API
+function updateStockList() {
+  var dl = document.getElementById('stockList');
+  if (!dl) return;
+  var stocks = (liveData && liveData.stocks) || [];
+  dl.innerHTML = stocks.map(function(s){ return '<option value="' + s.name + '">'; }).join('');
+}
+
 function fetchLiveData(manual) {
   ['apiStatus','apiStatus2'].forEach(function(id) {
     var el = document.getElementById(id);
@@ -746,6 +829,10 @@ function fetchLiveData(manual) {
       renderPortfolio(); renderTable(); renderStocksPage(); updateSamsungTotal();
       renderAllAccounts();
       renderPerfChart(currentChartRange, '삼성계좌');
+      renderAccountChart('ISA', '3m', null);
+      renderAccountChart('연금저축', '3m', null);
+      renderAccountChart('해외계좌', '3m', null);
+      updateStockList();
       if (manual) alert('갱신 완료!');
     })
     .catch(function() {
