@@ -251,7 +251,7 @@ tbody tr:last-child td{border-bottom:none;}
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
         새로고침
       </button>
-      <div class="user-chip"><div class="avatar">NR</div><div class="user-info"><div class="user-name">Naya Rachel</div><div class="user-email">rachel@gmail.com</div></div></div>
+      <div class="user-chip"><div class="avatar">NR</div><div class="user-info"><div class="user-name">Naya Rachel</div><div class="user-email"><a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="91e3f0f2f9f4fdd1f6fcf0f8fdbff2fefc">[email&#160;protected]</a></div></div></div>
     </div>
   </header>
   <div class="journal-content">
@@ -268,8 +268,14 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="journal-table-wrap">
       <div class="journal-table-header"><span style="font-size:13.5px;font-weight:500">전체 종목 목록</span></div>
       <div style="overflow-x:auto">
-        <table class="journal-table">
-          <thead><tr><th>종목명</th><th>티커</th><th>현재가</th><th>전일대비</th><th>상태</th></tr></thead>
+        <table id="stocksTable" style="width:100%;border-collapse:collapse">
+          <thead><tr>
+            <th style="font-size:11px;font-weight:500;color:var(--muted);padding:10px 12px;text-align:left;background:var(--surface2);border-bottom:1px solid var(--border)">종목명</th>
+            <th style="font-size:11px;font-weight:500;color:var(--muted);padding:10px 12px;text-align:left;background:var(--surface2);border-bottom:1px solid var(--border)">티커</th>
+            <th style="font-size:11px;font-weight:500;color:var(--muted);padding:10px 12px;text-align:left;background:var(--surface2);border-bottom:1px solid var(--border)">현재가</th>
+            <th style="font-size:11px;font-weight:500;color:var(--muted);padding:10px 12px;text-align:left;background:var(--surface2);border-bottom:1px solid var(--border)">전일대비</th>
+            <th style="font-size:11px;font-weight:500;color:var(--muted);padding:10px 12px;text-align:left;background:var(--surface2);border-bottom:1px solid var(--border)">상태</th>
+          </tr></thead>
           <tbody id="stocksTableBody"></tbody>
         </table>
       </div>
@@ -300,7 +306,7 @@ tbody tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
-<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 const SHEET_URL='https://script.google.com/macros/s/AKfycbwZD1EkBSlBDy5Mlr73loEDIwg7zYekUvIK3efeproPOqFJgzN3LcwIw0iC4skaLWcj/exec';
 const API_URL='https://corsproxy.io/?'+encodeURIComponent(SHEET_URL);
 let liveData={stocks:[]};
@@ -353,12 +359,13 @@ function renderStocksPage(){
     const cls=pct>0?'up':pct<0?'dn':'';
     const arrow=pct>0?'▲':pct<0?'▼':'─';
     const badge=pct>0?'<span class="type-badge buy">상승</span>':pct<0?'<span class="type-badge sell">하락</span>':'<span style="color:var(--muted);font-size:11px">보합</span>';
+    const td='padding:10px 12px;font-size:12px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;vertical-align:middle';
     return '<tr>'
-      +'<td style="font-weight:500">'+s.name+'</td>'
-      +'<td style="color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px">'+s.ticker+'</td>'
-      +'<td style="font-family:\'DM Mono\',monospace;font-weight:500">₩'+Number(s.price).toLocaleString('ko-KR')+'</td>'
-      +'<td class="'+cls+'" style="font-weight:500">'+arrow+' '+(pct>=0?'+':'')+pct.toFixed(2)+'%</td>'
-      +'<td>'+badge+'</td></tr>';
+      +'<td style="'+td+';font-weight:500">'+s.name+'</td>'
+      +'<td style="'+td+';color:var(--muted);font-family:\'DM Mono\',monospace;font-size:11px">'+s.ticker+'</td>'
+      +'<td style="'+td+';font-family:\'DM Mono\',monospace;font-weight:500">₩'+Number(s.price).toLocaleString('ko-KR')+'</td>'
+      +'<td style="'+td+';font-weight:500" class="'+cls+'">'+arrow+' '+(pct>=0?'+':'')+pct.toFixed(2)+'%</td>'
+      +'<td style="'+td+'">'+badge+'</td></tr>';
   }).join('');
 }
 
@@ -638,12 +645,4 @@ document.querySelectorAll('.nav-item[data-page]').forEach(item=>{
     item.classList.add('active');
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     const t=document.getElementById('page-'+item.dataset.page);
-    if(t)t.classList.add('active');
-  });
-});
-// ── INIT ──
-renderPortfolio();renderPerfChart('3m');renderTable();renderWatchlist();renderJournal();renderStocksPage();updateSamsungTotal();
-fetchLiveData();
-</script>
-</body>
-</html>
+    if(t)t.cl
