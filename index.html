@@ -20,10 +20,13 @@ function goTo(page) {
 function switchJournalTab(tab) {
   document.getElementById('tabTrade').className = 'journal-tab' + (tab === 'trade' ? ' active' : '');
   document.getElementById('tabCash').className  = 'journal-tab' + (tab === 'cash'  ? ' active' : '');
+  document.getElementById('tabFx').className    = 'journal-tab' + (tab === 'fx'    ? ' active' : '');
   document.getElementById('paneTrade').style.display    = tab === 'trade' ? 'block' : 'none';
   document.getElementById('paneCash').style.display     = tab === 'cash'  ? 'block' : 'none';
+  document.getElementById('paneFx').style.display       = tab === 'fx'    ? 'block' : 'none';
   document.getElementById('tradeButtons').style.display = tab === 'trade' ? 'flex'  : 'none';
   document.getElementById('cashButtons').style.display  = tab === 'cash'  ? 'flex'  : 'none';
+  document.getElementById('fxButtons').style.display    = tab === 'fx'    ? 'flex'  : 'none';
 }
 function openCashModal(type) {
   window._cashType = type;
@@ -686,6 +689,26 @@ tbody tr:last-child td{border-bottom:none;}
   </div>
 </div>
 
+<!-- 환전 모달 -->
+<div class="modal-overlay" id="fxModalOverlay">
+  <div class="modal" style="width:440px">
+    <div class="modal-title"><span>환전 추가</span><button class="modal-close" onclick="closeFxModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">날짜</label><input class="form-input" type="date" id="fxDate"></div>
+      <div class="form-group full"><label class="form-label">출금 계좌 (원화)</label>
+        <select class="form-select" id="fxFromAccount">
+          <option>삼성계좌</option><option>ISA</option><option>해외계좌</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">원화 금액 (₩)</label><input class="form-input" type="number" id="fxKrwAmount" placeholder="0" oninput="calcFxUsd()"></div>
+      <div class="form-group"><label class="form-label">적용 환율 (원/달러)</label><input class="form-input" type="number" id="fxRate2" placeholder="1300" oninput="calcFxUsd()"></div>
+      <div class="form-group full"><label class="form-label">달러 금액 ($) — 자동계산</label><input class="form-input" type="text" id="fxUsdAmount" readonly style="color:var(--accent2);font-weight:600"></div>
+      <div class="form-group full"><label class="form-label">비고</label><input class="form-input" type="text" id="fxNote" placeholder="메모 (선택)"></div>
+    </div>
+    <div class="modal-footer"><button class="btn-cancel" onclick="closeFxModal()">취소</button><button class="btn-save" onclick="saveFxEntry()">저장</button></div>
+  </div>
+</div>
+
 <!-- PAGE: 연금저축 -->
 <div class="page" id="page-pension">
   <header class="topbar">
@@ -831,11 +854,18 @@ tbody tr:last-child td{border-bottom:none;}
         <div class="card-header"><span style="font-size:13.5px;font-weight:500">주식잔고/손익</span></div>
         <table>
           <thead><tr style="background:var(--surface3)"><th colspan="4" style="font-size:11px;font-weight:600;color:var(--muted);padding:8px 0">현금</th></tr></thead>
-          <tbody><tr>
-            <td><div class="stock-name-cell"><div class="mini-icon" style="background:rgba(34,216,122,0.15);color:var(--green)">₩</div><span style="font-weight:500">예수금</span></div></td>
-            <td></td><td></td>
-            <td class="mono" id="overviewCashOverseas" style="font-weight:500;color:var(--green)">₩0</td>
-          </tr></tbody>
+          <tbody>
+            <tr>
+              <td><div class="stock-name-cell"><div class="mini-icon" style="background:rgba(34,216,122,0.15);color:var(--green)">₩</div><span style="font-weight:500">원화 예수금</span></div></td>
+              <td colspan="2"></td>
+              <td class="mono" id="overviewCashOverseas" style="font-weight:500;color:var(--green)">₩0</td>
+            </tr>
+            <tr>
+              <td><div class="stock-name-cell"><div class="mini-icon" style="background:rgba(59,123,255,0.15);color:var(--accent)">$</div><span style="font-weight:500">달러 예수금</span></div></td>
+              <td colspan="2"><span style="font-size:10.5px;color:var(--muted)" id="overviewCashOverseasUsdKrw"></span></td>
+              <td class="mono" id="overviewCashOverseasUsd" style="font-weight:500;color:var(--accent2)">$0.00</td>
+            </tr>
+          </tbody>
           <thead>
             <tr><td colspan="4" style="height:12px;border:none"></td></tr>
             <tr style="background:var(--surface3)"><th colspan="4" style="font-size:11px;font-weight:600;color:var(--muted);padding:8px 0">주식</th></tr>
@@ -885,6 +915,7 @@ tbody tr:last-child td{border-bottom:none;}
         <div style="display:flex;gap:4px">
           <button class="journal-tab active" id="tabTrade" onclick="switchJournalTab('trade')">거래 내역</button>
           <button class="journal-tab" id="tabCash" onclick="switchJournalTab('cash')">예수금 거래</button>
+          <button class="journal-tab" id="tabFx" onclick="switchJournalTab('fx')">환전</button>
         </div>
         <div style="display:flex;gap:8px" id="tradeButtons">
           <label class="csv-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>가져오기<input type="file" accept=".csv" id="csvImportInput" style="display:none"></label>
@@ -897,6 +928,11 @@ tbody tr:last-child td{border-bottom:none;}
           <button class="add-btn" style="background:var(--green)" onclick="openCashModal('in')">+ 입금</button>
           <button class="add-btn" style="background:var(--red)" onclick="openCashModal('out')">- 출금</button>
         </div>
+        <div style="display:flex;gap:8px;display:none" id="fxButtons">
+          <label class="csv-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>가져오기<input type="file" accept=".csv" id="fxCsvImportInput" style="display:none"></label>
+          <button class="csv-btn" id="fxExportBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>내보내기</button>
+          <button class="add-btn" style="background:var(--accent2)" onclick="openFxModal()">💱 환전 추가</button>
+        </div>
       </div>
       <div id="paneTrade">
         <div style="overflow-x:auto;overflow-y:auto;max-height:600px"><table class="jt"><thead><tr><th style="position:sticky;top:0;z-index:2;background:var(--surface)">날짜</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">구분</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">종목명</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">계좌</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">수량</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">매수단가</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">매도단가</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">총매수</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">총매도</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">손익</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">비고</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)"></th></tr></thead><tbody id="journalBody"></tbody></table></div>
@@ -905,6 +941,12 @@ tbody tr:last-child td{border-bottom:none;}
       <div id="paneCash" style="display:none">
         <div style="overflow-x:auto"><table class="jt"><thead><tr><th>날짜</th><th>구분</th><th>계좌</th><th>금액</th><th>비고</th><th></th></tr></thead><tbody id="cashBody"></tbody></table></div>
         <div id="cashEmpty" class="empty-state"><div>💰</div>예수금 거래 내역이 없어요!</div>
+      </div>
+      <div id="paneFx" style="display:none">
+        <div style="overflow-x:auto"><table class="jt"><thead><tr>
+          <th>날짜</th><th>출금계좌(원화)</th><th>원화금액</th><th>적용환율</th><th>달러금액</th><th>비고</th><th></th>
+        </tr></thead><tbody id="fxBody"></tbody></table></div>
+        <div id="fxEmpty" class="empty-state"><div>💱</div>환전 내역이 없어요!</div>
       </div>
     </div>
   </div>
@@ -1204,7 +1246,15 @@ function getAcctStocks(accountName) {
   return Object.values(map).filter(function(s){return s.totalQty>0||s.totalBuy>0;});
 }
 function getAcctCash(accountName) {
-  return (window._cashEntries||[]).filter(function(e){return e.account===accountName;}).reduce(function(s,e){return e.type==='in'?s+e.amount:s-e.amount;},0);
+  // 일반 예수금 입출금
+  var base = (window._cashEntries||[]).filter(function(e){return e.account===accountName;}).reduce(function(s,e){return e.type==='in'?s+e.amount:s-e.amount;},0);
+  // 환전 출금: 해당 계좌에서 원화 출금한 경우 차감
+  var fxOut = (window._fxEntries||[]).filter(function(e){return e.fromAccount===accountName;}).reduce(function(s,e){return s+e.krwAmount;},0);
+  return base - fxOut;
+}
+// 해외계좌 달러 예수금: 환전으로 들어온 달러 합계
+function getAcctCashUSD(accountName) {
+  return (window._fxEntries||[]).filter(function(e){return e.fromAccount===accountName;}).reduce(function(s,e){return s+e.usdAmount;},0);
 }
 
 // ── 도넛 차트 공통 ──
@@ -1324,6 +1374,15 @@ function renderAcctPage(key) {
   var retEl=document.getElementById(cfg.retId);
   if(retEl){if(cost>0){var p=total-cash-cost,pct=(p/cost*100).toFixed(2);retEl.textContent=(p>=0?'+':'')+pct+'% ('+(p>=0?'+':'')+Math.round(p).toLocaleString('ko-KR')+'원)';retEl.style.color=p>=0?'var(--green)':'var(--red)';}else{retEl.textContent='거래일지에서 추가하세요';retEl.style.color='var(--muted)';}}
   var cashEl=document.getElementById(cfg.cashId);if(cashEl){cashEl.textContent='₩'+Math.round(cash).toLocaleString('ko-KR');cashEl.style.color=cash>=0?'var(--green)':'var(--red)';}
+  // 해외계좌 달러 예수금 표시
+  if(key==='overseas'){
+    var usdBal=getAcctCashUSD(cfg.acct);
+    var usdEl=document.getElementById('overviewCashOverseasUsd');
+    if(usdEl)usdEl.textContent='$'+usdBal.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    var usdKrwEl=document.getElementById('overviewCashOverseasUsdKrw');
+    var _fx=window._fxRate||1300;
+    if(usdKrwEl)usdKrwEl.textContent='≈ ₩'+Math.round(usdBal*_fx).toLocaleString('ko-KR');
+  }
   var tbody=document.getElementById(cfg.tableId);
   if(tbody){
     if(!stocks.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">거래를 추가하면 표시돼요.</td></tr>';}
@@ -1888,6 +1947,113 @@ function renderStocksPage() {
       +'<td>'+makeSelect(s.name,'status',statusOpts,meta.status)+'</td>'
       +'<td>'+makeSelect(s.name,'theme',themeOpts,meta.theme)+'</td></tr>';
   }).join('');
+}
+
+// ── 환전 ──
+window._fxEntries = window._fxEntries || [];
+
+function openFxModal() {
+  document.getElementById('fxDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('fxKrwAmount').value = '';
+  document.getElementById('fxUsdAmount').value = '';
+  document.getElementById('fxNote').value = '';
+  var fxVal = window._fxRate || 1300;
+  document.getElementById('fxRate2').value = Math.round(fxVal);
+  document.getElementById('fxModalOverlay').classList.add('open');
+}
+function closeFxModal() { document.getElementById('fxModalOverlay').classList.remove('open'); }
+function calcFxUsd() {
+  var krw = parseFloat(document.getElementById('fxKrwAmount').value) || 0;
+  var rate = parseFloat(document.getElementById('fxRate2').value) || 1300;
+  var usd = krw > 0 && rate > 0 ? (krw / rate) : 0;
+  document.getElementById('fxUsdAmount').value = usd > 0 ? '$' + usd.toFixed(2) : '';
+}
+function saveFxEntry() {
+  var krw  = parseFloat(document.getElementById('fxKrwAmount').value) || 0;
+  var rate = parseFloat(document.getElementById('fxRate2').value) || 1300;
+  if (!krw || !rate) { alert('원화 금액과 환율을 입력해주세요.'); return; }
+  var usd = krw / rate;
+  var entry = {
+    id:          Date.now(),
+    date:        document.getElementById('fxDate').value,
+    fromAccount: document.getElementById('fxFromAccount').value,
+    krwAmount:   krw,
+    rate:        rate,
+    usdAmount:   Math.round(usd * 100) / 100,
+    note:        document.getElementById('fxNote').value
+  };
+  window._fxEntries = window._fxEntries || [];
+  window._fxEntries.unshift(entry);
+  closeFxModal();
+  renderFxJournal();
+  refreshAll();
+}
+function deleteFxEntry(id) {
+  window._fxEntries = (window._fxEntries||[]).filter(function(e){ return e.id !== id; });
+  renderFxJournal();
+  refreshAll();
+}
+function renderFxJournal() {
+  var entries = window._fxEntries || [];
+  var tbody = document.getElementById('fxBody');
+  var empty = document.getElementById('fxEmpty');
+  if (!tbody) return;
+  if (!entries.length) {
+    tbody.innerHTML = '';
+    if (empty) empty.style.display = 'block';
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  tbody.innerHTML = entries.map(function(e) {
+    return '<tr>'
+      + '<td style="color:var(--muted)">' + e.date + '</td>'
+      + '<td>' + e.fromAccount + '</td>'
+      + '<td class="mono" style="color:var(--red)">-₩' + Math.round(e.krwAmount).toLocaleString('ko-KR') + '</td>'
+      + '<td class="mono" style="color:var(--muted)">' + Math.round(e.rate).toLocaleString('ko-KR') + '원/$</td>'
+      + '<td class="mono" style="color:var(--accent2);font-weight:600">+$' + e.usdAmount.toFixed(2) + '</td>'
+      + '<td style="color:var(--muted)">' + (e.note||'-') + '</td>'
+      + '<td><button class="del-btn" onclick="deleteFxEntry(' + e.id + ')">✕</button></td>'
+      + '</tr>';
+  }).join('');
+}
+function exportFxCSV() {
+  var entries = window._fxEntries || [];
+  if (!entries.length) { alert('내보낼 환전 내역이 없어요.'); return; }
+  var h = ['날짜','출금계좌','원화금액','적용환율','달러금액','비고'];
+  var rows = entries.map(function(e) {
+    return [e.date, e.fromAccount, e.krwAmount, e.rate, e.usdAmount, e.note||''];
+  });
+  var csv = '\uFEFF' + [h].concat(rows).map(function(r) {
+    return r.map(function(v){ return '"' + String(v).replace(/"/g,'""') + '"'; }).join(',');
+  }).join('\n');
+  var a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = '환전내역_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+}
+function importFxCSV(event) {
+  var file = event.target.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var text = e.target.result.replace(/^\uFEFF/,'');
+    var lines = text.trim().split(/\r?\n/), imported = [];
+    lines.slice(1).forEach(function(line) {
+      if (!line.trim()) return;
+      var cols=[], cur='', inQ=false, dq='"';
+      for(var i=0;i<line.length;i++){if(line[i]===dq){if(inQ&&line[i+1]===dq){cur+=dq;i++;}else inQ=!inQ;}else if(line[i]===','&&!inQ){cols.push(cur.trim());cur='';}else cur+=line[i];}
+      cols.push(cur.trim());
+      if(cols.length<5||!cols[0]) return;
+      var krw=parseFloat(cols[2])||0, rate=parseFloat(cols[3])||0, usd=parseFloat(cols[4])||0;
+      if(!krw) return;
+      imported.push({ id:Date.now()+Math.random(), date:cols[0], fromAccount:cols[1]||'해외계좌', krwAmount:krw, rate:rate, usdAmount:usd||(rate?krw/rate:0), note:cols[5]||'' });
+    });
+    if(!imported.length){ alert('가져올 데이터가 없어요.'); return; }
+    if(confirm(imported.length+'건의 환전 내역을 가져올까요?')){
+      window._fxEntries=(imported).concat(window._fxEntries||[]);
+      renderFxJournal(); refreshAll(); alert('완료!');
+    }
+  };
+  reader.readAsText(file,'UTF-8'); event.target.value='';
 }
 
 // ── CSV ──
@@ -2570,7 +2736,7 @@ function refreshAll() {
   renderSavingsPage();
   renderPensionDonuts(); renderOverseasDonuts(); renderIsaDonuts(); renderIsaCompare(); renderPensionCompare(); renderTaxCheck();
   renderDashboard(); renderDashboardPerfChart(_dashPerfRange); renderPerfTable();
-  renderJournal(); window.renderCashJournal(); renderStocksPage(); renderStatsPage(); renderGrowthChart(_growthRange); renderOverviewChart();
+  renderJournal(); window.renderCashJournal(); renderFxJournal(); renderStocksPage(); renderStatsPage(); renderGrowthChart(_growthRange); renderOverviewChart();
 }
 
 // ── 삼성계좌 수익률 차트 탭 ──
@@ -2600,6 +2766,9 @@ document.getElementById('csvImportInput').addEventListener('change',importCSV);
 document.getElementById('exportBtn').addEventListener('click',exportCSV);
 document.getElementById('cashCsvImportInput').addEventListener('change',importCashCSV);
 document.getElementById('cashExportBtn').addEventListener('click',exportCashCSV);
+document.getElementById('fxCsvImportInput').addEventListener('change',importFxCSV);
+document.getElementById('fxExportBtn').addEventListener('click',exportFxCSV);
+document.getElementById('fxModalOverlay').addEventListener('click',function(e){if(e.target===this)closeFxModal();});
 
 // ── 오버레이 닫기 ──
 document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
@@ -2619,6 +2788,7 @@ document.querySelectorAll('.col-resizer').forEach(function(resizer){
 });
 
 // ── INIT ──
+window._fxEntries = window._fxEntries || [];
 loadStockMeta();
 loadPageDescs();
 loadPensionTargets();
