@@ -1616,8 +1616,8 @@ function fetchExchangeRate() {
     // 해외주식 Total Asset → 원화로 표시
     // 환율 갱신 후 refreshAll이 호출되므로 별도 overseas 갱신 불필요
 
-    // 종목현황 재렌더 (환율 적용)
-    if(typeof renderStocksPage==='function') renderStocksPage();
+    // 환율 변경 → 전체 재렌더 (해외주식 평가금액, 대시보드 등 모두 반영)
+    if(typeof refreshAll==='function') refreshAll();
   }).catch(function(){var el=document.getElementById('fxRate');if(el)el.textContent='연결 실패';});
 }
 function renderTaxCheck() {
