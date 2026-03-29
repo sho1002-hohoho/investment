@@ -1218,7 +1218,18 @@ function renderAcctPage(key) {
   var total=cash;
   stocks.forEach(function(s){var live=getLive(s.stock),cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1));total+=cur*s.totalQty;});
   var cost=stocks.reduce(function(s,st){return s+st.totalBuy;},0);
-  var amtEl=document.getElementById(cfg.amtId);if(amtEl)amtEl.textContent='₩ '+Math.round(total).toLocaleString('ko-KR');
+  var amtEl=document.getElementById(cfg.amtId);
+  if(amtEl){
+    if(key==='overseas'){
+      // 해외주식: 원화 총액을 현재 환율로 달러 환산해서 표시
+      var fxNow=parseFloat((document.getElementById('fxRate')||{}).textContent||'0')||1300;
+      var totalUSD=fxNow>0?total/fxNow:0;
+      amtEl.textContent='$ '+totalUSD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+      window._overseasTotalKRW=total; // 원화 환산용 저장
+    } else {
+      amtEl.textContent='₩ '+Math.round(total).toLocaleString('ko-KR');
+    }
+  }
   var retEl=document.getElementById(cfg.retId);
   if(retEl){if(cost>0){var p=total-cash-cost,pct=(p/cost*100).toFixed(2);retEl.textContent=(p>=0?'+':'')+pct+'% ('+(p>=0?'+':'')+Math.round(p).toLocaleString('ko-KR')+'원)';retEl.style.color=p>=0?'var(--green)':'var(--red)';}else{retEl.textContent='거래일지에서 추가하세요';retEl.style.color='var(--muted)';}}
   var cashEl=document.getElementById(cfg.cashId);if(cashEl){cashEl.textContent='₩'+Math.round(cash).toLocaleString('ko-KR');cashEl.style.color=cash>=0?'var(--green)':'var(--red)';}
@@ -1273,7 +1284,17 @@ function updateIsaTarget(label,val) { var t=isaTargets.find(function(t){return t
 function renderIsaCompare() {
   var stocks=getAcctStocks('ISA'),cash=getAcctCash('ISA'),total=cash,stockVals={};
   stocks.forEach(function(s){var live=getLive(s.stock),cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1)),v=cur*s.totalQty;stockVals[s.stock]=v;total+=v;});
+
+  // 종목현황 - 자산현황(status) 기준으로 actualMap 집계
   var actualMap={};isaTargets.forEach(function(t){actualMap[t.label]=0;});
+  Object.keys(stockVals).forEach(function(stockName){
+    var meta=_stockMeta[stockName]||{};
+    var status=meta.status||'';
+    if(status && actualMap.hasOwnProperty(status)) actualMap[status]+=stockVals[stockName];
+  });
+  // 예수금은 채권으로 분류
+  if(cash>0 && actualMap.hasOwnProperty('채권')) actualMap['채권']+=cash;
+
   var targetList=document.getElementById('isaTargetList'),sumEl=document.getElementById('isaTargetSum');
   if(targetList) targetList.innerHTML=isaTargets.map(function(t){
     var actual=total>0?Math.round((actualMap[t.label]||0)/total*1000)/10:0;
@@ -1352,9 +1373,13 @@ function fetchExchangeRate() {
     var el=document.getElementById('fxRate');if(el)el.textContent=cur.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});
     var chgEl=document.getElementById('fxChange');if(chgEl){chgEl.textContent=(chg>=0?'+':'')+chg.toFixed(2)+'원 ('+(chgPct>=0?'+':'')+chgPct.toFixed(2)+'%)';chgEl.className=chg>=0?'up':'dn';}
     var timeEl=document.getElementById('fxTime');if(timeEl)timeEl.textContent=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 기준';
-    var stocks=getAcctStocks('해외계좌'),totalUSD=stocks.reduce(function(s,st){var live=getLive(st.stock),p=(live&&live.price)?live.price:(st.totalBuy/Math.max(st.totalQty,1));return s+p*st.totalQty;},0);
-    var cvEl=document.getElementById('fxConverted');if(cvEl)cvEl.textContent='₩'+Math.round(totalUSD*cur).toLocaleString('ko-KR');
-    var baseEl=document.getElementById('fxBase');if(baseEl)baseEl.textContent='$'+totalUSD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+    var stocks=getAcctStocks('해외계좌'),cash=getAcctCash('해외계좌');
+    var totalKRW=cash+stocks.reduce(function(s,st){var live=getLive(st.stock),p=(live&&live.price)?live.price:(st.totalBuy/Math.max(st.totalQty,1));return s+p*st.totalQty;},0);
+    var totalUSD=cur>0?totalKRW/cur:0;
+    var cvEl=document.getElementById('fxConverted');if(cvEl)cvEl.textContent='₩'+Math.round(totalKRW).toLocaleString('ko-KR');
+    var baseEl=document.getElementById('fxBase');if(baseEl)baseEl.textContent='$'+totalUSD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' 기준';
+    // Total Asset도 달러로 업데이트
+    var amtEl=document.getElementById('totalAmountOverseas');if(amtEl)amtEl.textContent='$ '+totalUSD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
   }).catch(function(){var el=document.getElementById('fxRate');if(el)el.textContent='연결 실패';});
 }
 function renderTaxCheck() {
