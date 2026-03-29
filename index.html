@@ -632,7 +632,7 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="journal-table-header"><span style="font-size:13.5px;font-weight:500">💳 CMA 목록</span><button class="add-btn" onclick="openCmaModal()" style="background:var(--accent2)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>CMA 추가</button></div>
       <div style="overflow-x:auto">
         <table class="jt"><thead><tr>
-          <th>상품명</th><th>은행</th><th>잔액</th><th>금리</th><th>일 이자</th><th>연 예상 이자</th><th></th>
+          <th>상품명</th><th>은행</th><th>잔액</th><th>금리</th><th>일 이자</th><th>연 예상 이자</th><th>인출</th><th></th>
         </tr></thead><tbody id="cmaList"></tbody></table>
       </div>
       <div id="cmaEmpty" class="empty-state"><div>💳</div>CMA 추가 버튼으로 CMA를 등록하세요!</div>
@@ -669,6 +669,20 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="form-group full"><label class="form-label">메모</label><input class="form-input" type="text" id="cmaNoteInput" placeholder="메모 (선택)"></div>
     </div>
     <div class="modal-footer"><button class="btn-cancel" onclick="closeCmaModal()">취소</button><button class="btn-save" onclick="saveCmaEntry()">저장</button></div>
+  </div>
+</div>
+
+<!-- CMA 인출 모달 -->
+<div class="modal-overlay" id="cmaWithdrawModalOverlay">
+  <div class="modal" style="width:360px">
+    <div class="modal-title"><span>CMA 인출</span><button class="modal-close" onclick="closeCmaWithdrawModal()">✕</button></div>
+    <div class="form-grid">
+      <div class="form-group full"><label class="form-label">인출 금액 (원)</label><input class="form-input" type="number" id="cmaWithdrawAmount" placeholder="0"></div>
+      <div class="form-group full"><label class="form-label">인출일</label><input class="form-input" type="date" id="cmaWithdrawDate"></div>
+      <div class="form-group full"><label class="form-label">메모</label><input class="form-input" type="text" id="cmaWithdrawNote" placeholder="메모 (선택)"></div>
+    </div>
+    <div id="cmaWithdrawInfo" style="font-size:11px;color:var(--muted);margin:8px 0 0;padding:8px 12px;background:var(--surface2);border-radius:8px"></div>
+    <div class="modal-footer"><button class="btn-cancel" onclick="closeCmaWithdrawModal()">취소</button><button class="btn-save" onclick="saveCmaWithdraw()">인출</button></div>
   </div>
 </div>
 
@@ -878,6 +892,8 @@ tbody tr:last-child td{border-bottom:none;}
           <button class="add-btn" onclick="openModal()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>거래 추가</button>
         </div>
         <div style="display:flex;gap:8px;display:none" id="cashButtons">
+          <label class="csv-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>가져오기<input type="file" accept=".csv" id="cashCsvImportInput" style="display:none"></label>
+          <button class="csv-btn" id="cashExportBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>내보내기</button>
           <button class="add-btn" style="background:var(--green)" onclick="openCashModal('in')">+ 입금</button>
           <button class="add-btn" style="background:var(--red)" onclick="openCashModal('out')">- 출금</button>
         </div>
@@ -1883,6 +1899,68 @@ function exportCSV() {
   var csv='\uFEFF'+[h].concat(rows).map(function(r){return r.map(function(v){return '"'+String(v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');
   var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download='거래일지_'+new Date().toISOString().slice(0,10)+'.csv';a.click();
 }
+function exportCashCSV() {
+  var entries = window._cashEntries || [];
+  if (!entries.length) { alert('내보낼 예수금 내역이 없어요.'); return; }
+  var h = ['날짜', '구분', '계좌', '금액', '비고'];
+  var rows = entries.map(function(e) {
+    return [e.date, e.type === 'in' ? '입금' : '출금', e.account, e.amount, e.note || ''];
+  });
+  var csv = '﻿' + [h].concat(rows).map(function(r) {
+    return r.map(function(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(',');
+  }).join('
+');
+  var a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = '예수금내역_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+}
+function importCashCSV(event) {
+  var file = event.target.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var text = e.target.result.replace(/^﻿/, '');
+    var lines = text.trim().split(/
+?
+/), imported = [];
+    lines.slice(1).forEach(function(line) {
+      if (!line.trim()) return;
+      var cols = [], cur = '', inQ = false, dq = '"';
+      for (var i = 0; i < line.length; i++) {
+        if (line[i] === dq) { if (inQ && line[i+1] === dq) { cur += dq; i++; } else inQ = !inQ; }
+        else if (line[i] === ',' && !inQ) { cols.push(cur.trim()); cur = ''; }
+        else cur += line[i];
+      }
+      cols.push(cur.trim());
+      if (cols.length < 4 || !cols[0]) return;
+      var type = cols[1] === '입금' ? 'in' : 'out';
+      var amount = parseFloat(cols[3]) || 0;
+      if (!amount) return;
+      var entry = {
+        id: Date.now() + Math.random(),
+        date: cols[0],
+        type: type,
+        account: cols[2] || '삼성계좌',
+        amount: amount,
+        note: cols[4] || ''
+      };
+      imported.push(entry);
+    });
+    if (!imported.length) { alert('가져올 데이터가 없어요.'); return; }
+    if (confirm(imported.length + '건의 예수금 내역을 가져올까요?')) {
+      window._cashEntries = imported.concat(window._cashEntries || []);
+      // 구글시트에도 저장
+      imported.forEach(function(entry) {
+        if (typeof postCashToSheet === 'function') postCashToSheet(entry);
+      });
+      if (window.renderCashJournal) window.renderCashJournal();
+      refreshAll();
+      alert('완료!');
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+  event.target.value = '';
+}
 function importCSV(event) {
   var file=event.target.files[0];if(!file)return;
   var reader=new FileReader();
@@ -2007,8 +2085,8 @@ function renderDashboard() {
     stocks.forEach(function(s){var live=getLive(s.stock),cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1));val+=cur*s.totalQty;});
     acctDonutMap[acct] = val;
   });
-  acctDonutMap['적금'] = savingsTotal;
-  acctDonutMap['CMA']  = cmaTotal;
+  // 적금/CMA → 안전자산으로 합산
+  acctDonutMap['안전자산'] = (acctDonutMap['안전자산']||0) + savingsTotal + cmaTotal;
 
   // ── 계좌별 도넛 차트 ──
   var acctDonutMap = {};
@@ -2018,7 +2096,8 @@ function renderDashboard() {
     stocks.forEach(function(s){var live=getLive(s.stock),cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1));val+=cur*s.totalQty;});
     acctDonutMap[acct]=val;
   });
-  acctDonutMap['적금']=savingsTotal; acctDonutMap['CMA']=cmaTotal;
+  // 적금/CMA → 안전자산으로 합산
+  acctDonutMap['안전자산'] = (acctDonutMap['안전자산']||0) + savingsTotal + cmaTotal;
   var dtAcctEl=document.getElementById('donutTotalDashboardAcct');
   if(dtAcctEl)dtAcctEl.textContent='₩'+Math.round(grandTotal).toLocaleString('ko-KR');
   var canvas2=document.getElementById('donutDashboardAcct');
@@ -2371,6 +2450,31 @@ function saveCmaEntry() {
 }
 function deleteCmaEntry(id) { window._cmaEntries=window._cmaEntries.filter(function(e){return e.id!==id;}); saveSavingsData(); renderSavingsPage(); }
 
+var _cmaWithdrawId = null;
+function openCmaWithdrawModal(id) {
+  _cmaWithdrawId = id;
+  var c = (window._cmaEntries||[]).find(function(e){ return e.id===id; });
+  if (!c) return;
+  document.getElementById('cmaWithdrawAmount').value = '';
+  document.getElementById('cmaWithdrawDate').value = new Date().toISOString().slice(0,10);
+  document.getElementById('cmaWithdrawNote').value = '';
+  document.getElementById('cmaWithdrawInfo').textContent = c.name + ' 현재 잔액: ' + fmt(c.balance);
+  document.getElementById('cmaWithdrawModalOverlay').classList.add('open');
+}
+function closeCmaWithdrawModal() { document.getElementById('cmaWithdrawModalOverlay').classList.remove('open'); }
+function saveCmaWithdraw() {
+  var amount = parseFloat(document.getElementById('cmaWithdrawAmount').value) || 0;
+  if (!amount) { alert('인출 금액을 입력해주세요.'); return; }
+  var c = (window._cmaEntries||[]).find(function(e){ return e.id===_cmaWithdrawId; });
+  if (!c) return;
+  if (amount > c.balance) { alert('인출 금액이 잔액을 초과합니다.\n현재 잔액: ' + fmt(c.balance)); return; }
+  // CMA 잔액 차감
+  c.balance = Math.round(c.balance - amount);
+  saveSavingsData();
+  closeCmaWithdrawModal();
+  renderSavingsPage();
+  refreshAll();
+}
 function saveSavingsData() {
   try { localStorage.setItem('savingsEntries', JSON.stringify(window._savingsEntries)); localStorage.setItem('cmaEntries', JSON.stringify(window._cmaEntries)); } catch(e){}
 }
@@ -2446,6 +2550,7 @@ function renderSavingsPage() {
         +'<td style="color:var(--accent2)">'+c.rate+'%</td>'
         +'<td class="up" style="font-weight:500">+'+fmt(daily)+'/일</td>'
         +'<td style="color:var(--accent2);font-weight:500">+'+fmt(yearly)+'/년</td>'
+        +'<td><button class="csv-btn" style="padding:3px 10px;font-size:11px" onclick="openCmaWithdrawModal('+c.id+')">인출</button></td>'
         +'<td><button class="del-btn" onclick="deleteCmaEntry('+c.id+')">✕</button></td>'
         +'</tr>';
     }).join('');
@@ -2457,6 +2562,7 @@ function renderSavingsPage() {
 // 모달 이벤트
 document.getElementById('savingsModalOverlay').addEventListener('click', function(e){ if(e.target===this) closeSavingsModal(); });
 document.getElementById('cmaModalOverlay').addEventListener('click', function(e){ if(e.target===this) closeCmaModal(); });
+document.getElementById('cmaWithdrawModalOverlay').addEventListener('click', function(e){ if(e.target===this) closeCmaWithdrawModal(); });
 function refreshAll() {
   renderSamsungPortfolio(); renderSamsungTable(); renderSamsungTotal(); renderSamsungCash();
   renderAcctDonut('삼성계좌','donutChartSamsung','donutLegendSamsung','donutTotalSamsung');
@@ -2492,6 +2598,8 @@ document.addEventListener('keydown',function(e){
 // ── CSV 이벤트 ──
 document.getElementById('csvImportInput').addEventListener('change',importCSV);
 document.getElementById('exportBtn').addEventListener('click',exportCSV);
+document.getElementById('cashCsvImportInput').addEventListener('change',importCashCSV);
+document.getElementById('cashExportBtn').addEventListener('click',exportCashCSV);
 
 // ── 오버레이 닫기 ──
 document.getElementById('modalOverlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
