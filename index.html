@@ -2316,26 +2316,15 @@ function renderDashboard() {
 
   var rows = Object.values(allStocks).filter(function(s){return s.totalQty>0;});
 
-  // ── 계좌별 도넛 차트 (% 라벨 표시) ──
+  // ── 자산 비중 도넛 차트 ──
   var acctDonutMap = {};
-  var colorMapDonut = {'삼성계좌':'#3b7bff','ISA':'#22d87a','연금저축':'#a855f7','해외계좌':'#f59e0b','적금':'#06b6d4','CMA':'#ec4899'};
-  stockAccounts.forEach(function(acct) {
-    var stocks = getAcctStocks(acct), cash = getAcctCash(acct), val = cash;
-    stocks.forEach(function(s){var live=getLive(s.stock),cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1));val+=cur*s.totalQty;});
-    acctDonutMap[acct] = val;
-  });
-  // 적금/CMA → 안전자산으로 합산
-  acctDonutMap['안전자산'] = (acctDonutMap['안전자산']||0) + savingsTotal + cmaTotal;
-
-  // ── 계좌별 도넛 차트 ──
-  var acctDonutMap = {};
-  var colorMapDonut = {'삼성계좌':'#3b7bff','ISA':'#22d87a','연금저축':'#a855f7','해외계좌':'#f59e0b','적금':'#06b6d4','CMA':'#ec4899'};
+  var colorMapDonut = {'삼성계좌':'#3b7bff','ISA':'#22d87a','연금저축':'#a855f7','해외계좌':'#f59e0b','안전자산':'#06b6d4'};
   stockAccounts.forEach(function(acct) {
     var stocks=getAcctStocks(acct),cash=getAcctCash(acct),val=cash;
     stocks.forEach(function(s){var live=getLive(s.stock),cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1));val+=cur*s.totalQty;});
     acctDonutMap[acct]=val;
   });
-  // 적금/CMA → 안전자산으로 합산
+  // 적금/CMA → 안전자산으로 합산 (별도 항목 없이 하나로)
   acctDonutMap['안전자산'] = (acctDonutMap['안전자산']||0) + savingsTotal + cmaTotal;
   var dtAcctEl=document.getElementById('donutTotalDashboardAcct');
   if(dtAcctEl)dtAcctEl.textContent='₩'+Math.round(grandTotal).toLocaleString('ko-KR');
