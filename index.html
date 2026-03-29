@@ -1762,7 +1762,9 @@ function renderStocksPage() {
   tbody.innerHTML=stocks.map(function(s){
     var pct=Number(s.changePct)||0,cls=pct>0?'up':pct<0?'dn':'',arrow=pct>0?'▲':pct<0?'▼':'─';
     var meta=getStockMeta(s.name);
-    return '<tr><td style="font-weight:500">'+s.name+'</td><td style="color:var(--muted);font-size:11px">'+s.ticker+'</td><td class="mono" style="font-weight:500">₩'+Number(s.price).toLocaleString('ko-KR')+'</td><td class="'+cls+'" style="font-weight:500">'+arrow+' '+(pct>=0?'+':'')+pct.toFixed(2)+'%</td>'
+    var isUSD=/^(NASDAQ|NYSE|AMEX|NYSEARCA):/i.test(s.ticker);
+    var priceStr=isUSD?'$'+Number(s.price).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'₩'+Number(s.price).toLocaleString('ko-KR');
+    return '<tr><td style="font-weight:500">'+s.name+'</td><td style="color:var(--muted);font-size:11px">'+s.ticker+'</td><td class="mono" style="font-weight:500">'+priceStr+'</td><td class="'+cls+'" style="font-weight:500">'+arrow+' '+(pct>=0?'+':'')+pct.toFixed(2)+'%</td>'
       +'<td>'+makeSelect(s.name,'section',sectionOpts,meta.section)+'</td>'
       +'<td>'+makeSelect(s.name,'asset',assetOpts,meta.asset)+'</td>'
       +'<td>'+makeSelect(s.name,'status',statusOpts,meta.status)+'</td>'
