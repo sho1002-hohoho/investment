@@ -64,6 +64,13 @@ function setCurrency(cur) {
   var labels = {fBuyPriceLabel:'매수단가 ',fSellPriceLabel:'매도단가 ',fTotalBuyLabel:'총 매수금액 ',fTotalSellLabel:'총 매도금액 '};
   Object.keys(labels).forEach(function(id){ var el=document.getElementById(id); if(el) el.textContent=labels[id]+sym+(id.includes('Total')?' (자동)':''); });
   var fg = document.getElementById('fxRateGroup'); if (fg) fg.style.display = isUSD ? 'block' : 'none';
+  // USD 선택 시 현재 환율 자동 입력
+  if (isUSD) {
+    var fxEl = document.getElementById('fxRate');
+    var fxVal = fxEl ? parseFloat(fxEl.textContent.replace(/,/g,'')) : 0;
+    var fxInput = document.getElementById('fxRateInput');
+    if (fxInput && fxVal > 0) fxInput.value = Math.round(fxVal);
+  }
   if (typeof calcTotal === 'function') calcTotal();
 }
 function saveEntry() {
@@ -1370,16 +1377,21 @@ function renderPensionCompare() {
 function fetchExchangeRate() {
   fetch('https://corsproxy.io/?'+encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/chart/USDKRW=X?interval=1d&range=2d')).then(function(r){return r.json();}).then(function(data){
     var result=data.chart.result[0],cur=result.meta.regularMarketPrice,prev=result.meta.previousClose||cur,chg=cur-prev,chgPct=chg/prev*100;
+    window._fxRate = cur; // 전역 환율 저장
     var el=document.getElementById('fxRate');if(el)el.textContent=cur.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});
     var chgEl=document.getElementById('fxChange');if(chgEl){chgEl.textContent=(chg>=0?'+':'')+chg.toFixed(2)+'원 ('+(chgPct>=0?'+':'')+chgPct.toFixed(2)+'%)';chgEl.className=chg>=0?'up':'dn';}
     var timeEl=document.getElementById('fxTime');if(timeEl)timeEl.textContent=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 기준';
+
+    // 해외주식 Total Asset → 원화로 표시
     var stocks=getAcctStocks('해외계좌'),cash=getAcctCash('해외계좌');
     var totalKRW=cash+stocks.reduce(function(s,st){var live=getLive(st.stock),p=(live&&live.price)?live.price:(st.totalBuy/Math.max(st.totalQty,1));return s+p*st.totalQty;},0);
     var totalUSD=cur>0?totalKRW/cur:0;
+    var amtEl=document.getElementById('totalAmountOverseas');if(amtEl)amtEl.textContent='₩ '+Math.round(totalKRW).toLocaleString('ko-KR');
     var cvEl=document.getElementById('fxConverted');if(cvEl)cvEl.textContent='₩'+Math.round(totalKRW).toLocaleString('ko-KR');
     var baseEl=document.getElementById('fxBase');if(baseEl)baseEl.textContent='$'+totalUSD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' 기준';
-    // Total Asset도 달러로 업데이트
-    var amtEl=document.getElementById('totalAmountOverseas');if(amtEl)amtEl.textContent='$ '+totalUSD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+    // 종목현황 재렌더 (환율 적용)
+    if(typeof renderStocksPage==='function') renderStocksPage();
   }).catch(function(){var el=document.getElementById('fxRate');if(el)el.textContent='연결 실패';});
 }
 function renderTaxCheck() {
@@ -1763,8 +1775,10 @@ function renderStocksPage() {
     var pct=Number(s.changePct)||0,cls=pct>0?'up':pct<0?'dn':'',arrow=pct>0?'▲':pct<0?'▼':'─';
     var meta=getStockMeta(s.name);
     var isUSD=/^(NASDAQ|NYSE|AMEX|NYSEARCA):/i.test(s.ticker);
-    var priceStr=isUSD?'$'+Number(s.price).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'₩'+Number(s.price).toLocaleString('ko-KR');
-    return '<tr><td style="font-weight:500">'+s.name+'</td><td style="color:var(--muted);font-size:11px">'+s.ticker+'</td><td class="mono" style="font-weight:500">'+priceStr+'</td><td class="'+cls+'" style="font-weight:500">'+arrow+' '+(pct>=0?'+':'')+pct.toFixed(2)+'%</td>'
+    var isUSD=/^(NASDAQ|NYSE|AMEX|NYSEARCA):/i.test(s.ticker);
+    var fx=window._fxRate||1300;
+    var priceKRW=isUSD?Math.round(Number(s.price)*fx):Number(s.price);
+    var priceStr=isUSD?'₩'+priceKRW.toLocaleString('ko-KR')+' ($'+Number(s.price).toFixed(2)+')':'₩'+Number(s.price).toLocaleString('ko-KR');
       +'<td>'+makeSelect(s.name,'section',sectionOpts,meta.section)+'</td>'
       +'<td>'+makeSelect(s.name,'asset',assetOpts,meta.asset)+'</td>'
       +'<td>'+makeSelect(s.name,'status',statusOpts,meta.status)+'</td>'
