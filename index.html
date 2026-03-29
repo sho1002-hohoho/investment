@@ -986,8 +986,8 @@ tbody tr:last-child td{border-bottom:none;}
         <table class="jt" id="stocksTable" style="table-layout:fixed;width:100%">
           <thead><tr>
             <th style="width:16%;position:relative">종목명<span class="col-resizer"></span></th>
-            <th style="width:14%;position:relative">티커<span class="col-resizer"></span></th>
-            <th style="width:14%;position:relative">현재가<span class="col-resizer"></span></th>
+            <th style="width:11%;position:relative">티커<span class="col-resizer"></span></th>
+            <th style="width:20%;position:relative">현재가<span class="col-resizer"></span></th>
             <th style="width:14%;position:relative">전일대비<span class="col-resizer"></span></th>
             <th style="width:13%;position:relative">섹션<span class="col-resizer"></span></th>
             <th style="width:13%;position:relative">자산구분<span class="col-resizer"></span></th>
@@ -1802,13 +1802,15 @@ function renderStocksPage() {
     var rawPrice=Number(s.price)||0;
     var priceKRW=isUSD?Math.round(rawPrice*fx):Math.round(rawPrice);
     var priceStr=isUSD
-      ?'<span style="font-weight:600">₩'+priceKRW.toLocaleString('ko-KR')+'</span>'
-       +'<span style="color:var(--muted);font-size:10.5px;margin-left:4px">$'+rawPrice.toFixed(2)+'</span>'
+      ?'<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">'
+       +'<span style="font-weight:600">₩'+priceKRW.toLocaleString('ko-KR')+'</span>'
+       +'<span style="color:var(--muted);font-size:10px;letter-spacing:-0.2px">$'+rawPrice.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'</span>'
+       +'</div>'
       :'₩'+priceKRW.toLocaleString('ko-KR');
     return '<tr>'
       +'<td><div class="stock-name-cell"><div class="mini-icon">'+s.name[0]+'</div><span style="font-weight:500">'+s.name+'</span></div></td>'
       +'<td class="mono" style="color:var(--muted)">'+( s.ticker||'-')+'</td>'
-      +'<td class="mono">'+priceStr+'</td>'
+      +'<td class="mono" style="white-space:normal;vertical-align:middle">'+priceStr+'</td>'
       +'<td class="mono '+cls+'">'+arrow+' '+(Math.abs(pct).toFixed(2))+'%</td>'
       +'<td>'+makeSelect(s.name,'section',sectionOpts,meta.section)+'</td>'
       +'<td>'+makeSelect(s.name,'asset',assetOpts,meta.asset)+'</td>'
