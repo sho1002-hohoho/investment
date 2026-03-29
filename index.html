@@ -1775,9 +1775,9 @@ function renderStocksPage() {
     var pct=Number(s.changePct)||0,cls=pct>0?'up':pct<0?'dn':'',arrow=pct>0?'▲':pct<0?'▼':'─';
     var meta=getStockMeta(s.name);
     var isUSD=/^(NASDAQ|NYSE|AMEX|NYSEARCA):/i.test(s.ticker);
-    var isUSD=/^(NASDAQ|NYSE|AMEX|NYSEARCA):/i.test(s.ticker);
     var fx=window._fxRate||1300;
     var priceKRW=isUSD?Math.round(Number(s.price)*fx):Number(s.price);
+    var priceStr=isUSD?'₩'+priceKRW.toLocaleString('ko-KR')+' ($'+Number(s.price).toFixed(2)+')':'₩'+Number(s.price).toLocaleString('ko-KR');
     var priceStr=isUSD?'₩'+priceKRW.toLocaleString('ko-KR')+' ($'+Number(s.price).toFixed(2)+')':'₩'+Number(s.price).toLocaleString('ko-KR');
       +'<td>'+makeSelect(s.name,'section',sectionOpts,meta.section)+'</td>'
       +'<td>'+makeSelect(s.name,'asset',assetOpts,meta.asset)+'</td>'
