@@ -2074,8 +2074,7 @@ function exportCashCSV() {
   });
   var csv = '﻿' + [h].concat(rows).map(function(r) {
     return r.map(function(v) { return '"' + String(v).replace(/"/g, '""') + '"'; }).join(',');
-  }).join('
-');
+  }).join('\n');
   var a = document.createElement('a');
   a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
   a.download = '예수금내역_' + new Date().toISOString().slice(0, 10) + '.csv';
@@ -2086,9 +2085,7 @@ function importCashCSV(event) {
   var reader = new FileReader();
   reader.onload = function(e) {
     var text = e.target.result.replace(/^﻿/, '');
-    var lines = text.trim().split(/
-?
-/), imported = [];
+    var lines = text.trim().split(/\r?\n/), imported = [];
     lines.slice(1).forEach(function(line) {
       if (!line.trim()) return;
       var cols = [], cur = '', inQ = false, dq = '"';
