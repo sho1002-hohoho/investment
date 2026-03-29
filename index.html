@@ -2226,9 +2226,12 @@ function renderDashboard() {
   var allStocks = {}, totalStockVal = 0, totalCost = 0, totalCash = 0;
 
   // 주식계좌
+  var _fxD = window._fxRate||1300;
   stockAccounts.forEach(function(acct) {
     getAcctStocks(acct).forEach(function(s) {
-      var live = getLive(s.stock), cur = (live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1));
+      var live=getLive(s.stock),liveP=(live&&live.price)?live.price:null;
+      var isUSD=isUSDTicker(live&&live.ticker)||s.currency==='USD'||acct==='해외계좌';
+      var cur=liveP?(isUSD?liveP*_fxD:liveP):(s.totalBuy/Math.max(s.totalQty,1));
       var val = cur * s.totalQty;
       if (!allStocks[s.stock]) allStocks[s.stock] = {stock:s.stock, totalQty:0, totalBuy:0};
       allStocks[s.stock].totalQty += s.totalQty;
@@ -2245,8 +2248,8 @@ function renderDashboard() {
   var cmaTotal = (window._cmaEntries||[]).reduce(function(s,e){ return s+(e.balance||0); }, 0);
 
   var grandTotal = totalStockVal + totalCash + savingsTotal + cmaTotal;
-  var totalProfit = totalStockVal - totalCost; // 미실현 손익
-  var totalProfitPct = totalCost > 0 ? (totalProfit/totalCost*100) : 0;
+  var totalProfit = totalStockVal - totalCost; // 전체 계좌 미실현 손익
+  var totalProfitPct = grandTotal > 0 ? (totalProfit/grandTotal*100) : 0; // 전체 자산 대비 수익률
 
   // ── 총 수익 카드 ──
   var amtEl = document.getElementById('totalAmountDashboard');
@@ -2367,8 +2370,12 @@ function renderDashboard() {
     });
   });
   usAccts.forEach(function(acct){
+    var _fx=window._fxRate||1300;
     getAcctStocks(acct).forEach(function(s){
-      var live=getLive(s.stock),cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1)),val=cur*s.totalQty;
+      var live=getLive(s.stock),liveP=(live&&live.price)?live.price:null;
+      var isUSD=isUSDTicker(live&&live.ticker)||s.currency==='USD'||acct==='해외계좌';
+      var cur=liveP?(isUSD?liveP*_fx:liveP):(s.totalBuy/Math.max(s.totalQty,1));
+      var val=cur*s.totalQty;
       var meta = getStockMeta(s.stock);
       if (meta.asset==='안전자산') assetClass['안전자산']+=val;
       else if (meta.section==='채권'||meta.theme==='채권') assetClass['채권']+=val;
