@@ -1774,10 +1774,15 @@ function renderStocksPage() {
   tbody.innerHTML=stocks.map(function(s){
     var pct=Number(s.changePct)||0,cls=pct>0?'up':pct<0?'dn':'',arrow=pct>0?'▲':pct<0?'▼':'─';
     var meta=getStockMeta(s.name);
-    var isUSD=/^(NASDAQ|NYSE|AMEX|NYSEARCA):/i.test(s.ticker);
+    var isKRW=/^(XKRX|XKOS|KRX|KOSPI|KOSDAQ|KQ|KS):/i.test(s.ticker)||(!s.ticker);
+    var isUSD=!isKRW;
     var fx=window._fxRate||1300;
-    var priceKRW=isUSD?Math.round(Number(s.price)*fx):Number(s.price);
-    var priceStr=isUSD?'₩'+priceKRW.toLocaleString('ko-KR')+' ($'+Number(s.price).toFixed(2)+')':'₩'+Number(s.price).toLocaleString('ko-KR');
+    var rawPrice=Number(s.price)||0;
+    var priceKRW=isUSD?Math.round(rawPrice*fx):Math.round(rawPrice);
+    var priceStr=isUSD
+      ?'<span style="font-weight:600">₩'+priceKRW.toLocaleString('ko-KR')+'</span>'
+       +'<span style="color:var(--muted);font-size:10.5px;margin-left:4px">$'+rawPrice.toFixed(2)+'</span>'
+      :'₩'+priceKRW.toLocaleString('ko-KR');
     return '<tr>'
       +'<td><div class="stock-name-cell"><div class="mini-icon">'+s.name[0]+'</div><span style="font-weight:500">'+s.name+'</span></div></td>'
       +'<td class="mono" style="color:var(--muted)">'+( s.ticker||'-')+'</td>'
