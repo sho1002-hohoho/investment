@@ -1043,7 +1043,9 @@ tbody tr:last-child td{border-bottom:none;}
 // ── 설정 ──
 var SHEET_URL = 'https://script.google.com/macros/s/AKfycbwZD1EkBSlBDy5Mlr73loEDIwg7zYekUvIK3efeproPOqFJgzN3LcwIw0iC4skaLWcj/exec';
 var API_URL   = 'https://corsproxy.io/?' + encodeURIComponent(SHEET_URL);
-var liveData  = {stocks:[], history:[]};
+var liveData  = {stocks:[
+  {name:'KODEX 미국우주항공', ticker:'XKRX:0167Z0', price:10325, changePct:3.14}
+], history:[]};
 window._entries     = window._entries     || [];
 window._cashEntries = window._cashEntries || [];
 
@@ -1317,7 +1319,17 @@ function updatePensionTarget(label,val) { var t=pensionTargets.find(function(t){
 function renderPensionCompare() {
   var stocks=getAcctStocks('연금저축'),cash=getAcctCash('연금저축'),total=cash,stockVals={};
   stocks.forEach(function(s){var live=getLive(s.stock),cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1)),v=cur*s.totalQty;stockVals[s.stock]=v;total+=v;});
+
+  // 종목현황 - 자산현황(status) 기준으로 actualMap 집계
   var actualMap={};pensionTargets.forEach(function(t){actualMap[t.label]=0;});
+  Object.keys(stockVals).forEach(function(stockName){
+    var meta=_stockMeta[stockName]||{};
+    var status=meta.status||'';
+    if(status && actualMap.hasOwnProperty(status)) actualMap[status]+=stockVals[stockName];
+  });
+  // 예수금은 채권으로 분류
+  if(cash>0 && actualMap.hasOwnProperty('채권')) actualMap['채권']+=cash;
+
   var targetList=document.getElementById('pensionTargetList'),sumEl=document.getElementById('pensionTargetSum');
   if(targetList) targetList.innerHTML=pensionTargets.map(function(t){
     var actual=total>0?Math.round((actualMap[t.label]||0)/total*1000)/10:0;
