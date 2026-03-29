@@ -111,14 +111,16 @@ function saveEntry() {
   // 매도 시 매도금액을 해당 계좌 예수금으로 자동 입금
   if (type === 'sell' && qty * sp > 0) {
     window._cashEntries = window._cashEntries || [];
-    window._cashEntries.unshift({
+    var autoCashEntry = {
       id: Date.now() + 1,
       date: entry.date,
       type: 'in',
       account: account,
       amount: qty * sp,
       note: stock + ' 매도대금 자동입금'
-    });
+    };
+    window._cashEntries.unshift(autoCashEntry);
+    if (typeof postCashToSheet === 'function') postCashToSheet(autoCashEntry);
   }
 
   if (typeof postTradeToSheet === 'function') postTradeToSheet(entry);
@@ -129,7 +131,9 @@ function saveCashEntry() {
   var amount = parseFloat(document.getElementById('cAmount').value) || 0;
   if (!amount) { alert('금액을 입력해주세요.'); return; }
   window._cashEntries = window._cashEntries || [];
-  window._cashEntries.unshift({ id:Date.now(), date:document.getElementById('cDate').value, type:window._cashType||'in', account:document.getElementById('cAccount').value, amount:amount, note:document.getElementById('cNote').value });
+  var cashEntry = { id:Date.now(), date:document.getElementById('cDate').value, type:window._cashType||'in', account:document.getElementById('cAccount').value, amount:amount, note:document.getElementById('cNote').value };
+  window._cashEntries.unshift(cashEntry);
+  if (typeof postCashToSheet === 'function') postCashToSheet(cashEntry);
   closeCashModal();
   if (window.renderCashJournal) window.renderCashJournal();
 }
@@ -1087,7 +1091,10 @@ function calcTotal() {
 
 // ── API ──
 function postTradeToSheet(entry) {
-  fetch(SHEET_URL, {method:'POST', body:JSON.stringify({date:entry.date,type:entry.type,stock:entry.stock,account:entry.account,qty:entry.qty,bp:entry.bp,sp:entry.sp})}).catch(function(){});
+  fetch(SHEET_URL, {method:'POST', body:JSON.stringify({action:'trade',date:entry.date,type:entry.type,stock:entry.stock,account:entry.account,qty:entry.qty,bp:entry.bp,sp:entry.sp})}).catch(function(){});
+}
+function postCashToSheet(entry) {
+  fetch(SHEET_URL, {method:'POST', body:JSON.stringify({action:'cash',date:entry.date,type:entry.type,account:entry.account,amount:entry.amount,note:entry.note||''})}).catch(function(){});
 }
 function fetchLiveData(manual) {
   ['apiStatus','apiStatus2'].forEach(function(id){ var el=document.getElementById(id); if(el){el.className='api-status loading';el.textContent='● 불러오는 중...';} });
@@ -1108,10 +1115,18 @@ function fetchLiveData(manual) {
     });
     console.groupEnd();
     liveData = data;
+    // 예수금 내역 불러오기
+    if (data.cashEntries && data.cashEntries.length) {
+      window._cashEntries = data.cashEntries;
+    }
+    // 거래 내역 불러오기
+    if (data.tradeEntries && data.tradeEntries.length) {
+      window._entries = data.tradeEntries;
+    }
     ['apiStatus','apiStatus2'].forEach(function(id){ var el=document.getElementById(id); if(el){el.className='api-status ok';el.textContent='● 실시간 연동';} });
     updateStockList();
     refreshAll();
-    if (manual) alert('갱신 완료! 콘솔(F12)에서 원본 데이터를 확인하세요.');
+    if (manual) alert('갱신 완료!');
   }).catch(function(){
     ['apiStatus','apiStatus2'].forEach(function(id){ var el=document.getElementById(id); if(el){el.className='api-status err';el.textContent='● 연결 실패';} });
   });
