@@ -72,10 +72,13 @@ function saveEntry() {
   var qty = parseFloat(document.getElementById('fQty').value) || 0;
   var bp  = parseFloat(document.getElementById('fBuyPrice').value)  || 0;
   var sp  = parseFloat(document.getElementById('fSellPrice').value) || 0;
-  var account = document.getElementById('fAccount').value;
-  var type    = window._currentType || 'buy';
-  if (window._currency === 'USD') {
-    var fx = parseFloat(document.getElementById('fxRateInput').value) || 1300;
+  var account  = document.getElementById('fAccount').value;
+  var type     = window._currentType || 'buy';
+  var currency = window._currency || 'KRW';
+  var fx = 1;
+  var bpOrig = bp, spOrig = sp;
+  if (currency === 'USD') {
+    fx = parseFloat(document.getElementById('fxRateInput').value) || 1300;
     bp = Math.round(bp * fx); sp = Math.round(sp * fx);
   }
   var prevEntries = (window._entries || []).filter(function(e){ return e.account===account && e.stock===stock; }).slice().reverse();
@@ -88,7 +91,14 @@ function saveEntry() {
     });
     profit = (sp - (tQty>0?tBuy/tQty:0)) * qty;
   }
-  var entry = { id:Date.now(), date:document.getElementById('fDate').value, type:type, stock:stock, account:account, qty:qty, bp:bp, sp:sp, tb:type==='buy'?qty*bp:0, ts:type==='sell'?qty*sp:0, profit:profit, note:document.getElementById('fNote').value };
+  var entry = {
+    id:Date.now(), date:document.getElementById('fDate').value, type:type,
+    stock:stock, account:account, qty:qty,
+    bp:bp, sp:sp,
+    bpOrig:bpOrig, spOrig:spOrig, fx:fx, currency:currency,
+    tb:type==='buy'?qty*bp:0, ts:type==='sell'?qty*sp:0,
+    profit:profit, note:document.getElementById('fNote').value
+  };
   window._entries = window._entries || [];
   window._entries.unshift(entry);
   if (typeof postTradeToSheet === 'function') postTradeToSheet(entry);
@@ -204,6 +214,7 @@ tbody tr:last-child td{border-bottom:none;}
 .journal-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
 .journal-table-header{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);}
 .jt{width:100%;border-collapse:collapse;}
+.jt thead th{position:sticky;top:0;z-index:2;background:var(--surface);}
 .jt th,.jt td{padding:10px 12px;font-size:12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;vertical-align:middle;}
 .jt th{font-size:11px;font-weight:500;color:var(--muted);background:var(--surface2);}
 .jt tbody tr:last-child td{border-bottom:none;}
@@ -971,16 +982,17 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="journal-table-wrap">
       <div class="journal-table-header"><span style="font-size:13.5px;font-weight:500">전체 종목 목록</span></div>
-      <div style="overflow-x:auto">
+      <div style="overflow-x:auto;overflow-y:auto;max-height:600px">
         <table class="jt" id="stocksTable" style="table-layout:fixed;width:100%">
           <thead><tr>
             <th style="width:16%;position:relative">종목명<span class="col-resizer"></span></th>
             <th style="width:14%;position:relative">티커<span class="col-resizer"></span></th>
             <th style="width:14%;position:relative">현재가<span class="col-resizer"></span></th>
             <th style="width:14%;position:relative">전일대비<span class="col-resizer"></span></th>
-            <th style="width:14%;position:relative">섹션<span class="col-resizer"></span></th>
-            <th style="width:14%;position:relative">자산구분<span class="col-resizer"></span></th>
-            <th style="width:14%">테마</th>
+            <th style="width:13%;position:relative">섹션<span class="col-resizer"></span></th>
+            <th style="width:13%;position:relative">자산구분<span class="col-resizer"></span></th>
+            <th style="width:13%;position:relative">자산현황<span class="col-resizer"></span></th>
+            <th style="width:13%">테마</th>
           </tr></thead>
           <tbody id="stocksBody"></tbody>
         </table>
@@ -1075,11 +1087,12 @@ function getLive(name) { return (liveData.stocks||[]).find(function(s){return s.
 
 // ── 종목 메타데이터 ──
 var _stockMeta = {};
-function getStockMeta(name) { if(!_stockMeta[name]) _stockMeta[name]={section:'',asset:'',theme:''}; return _stockMeta[name]; }
-function updateStockMeta(name,key,val) { if(!_stockMeta[name]) _stockMeta[name]={section:'',asset:'',theme:''}; _stockMeta[name][key]=val; try{localStorage.setItem('stockMeta',JSON.stringify(_stockMeta));}catch(e){} }
+function getStockMeta(name) { if(!_stockMeta[name]) _stockMeta[name]={section:'',asset:'',status:'',theme:''}; return _stockMeta[name]; }
+function updateStockMeta(name,key,val) { if(!_stockMeta[name]) _stockMeta[name]={section:'',asset:'',status:'',theme:''}; _stockMeta[name][key]=val; try{localStorage.setItem('stockMeta',JSON.stringify(_stockMeta));}catch(e){} }
 function loadStockMeta() { try{var d=localStorage.getItem('stockMeta');if(d)_stockMeta=JSON.parse(d);}catch(e){} }
 var sectionOpts = ['','성장주','배당주','가치주','ETF','리츠'];
-var assetOpts   = ['','위험자산','안전자산','중립'];
+var assetOpts   = ['','국내주식','해외주식','채권','안전자산'];
+var statusOpts  = ['','국내주식','해외주식','채권','배당주','리츠'];
 var themeOpts   = ['','반도체','은행','식품','바이오','자동차','에너지','IT','유통','화학','건설','통신','조선','방산','채권'];
 function makeSelect(name,key,opts,cur) {
   return '<select class="meta-select" onchange="updateStockMeta(\''+name+'\',\''+key+'\',this.value)">'
@@ -1354,8 +1367,14 @@ function renderJournal() {
   if(empty)empty.style.display='none';
   tbody.innerHTML=entries.map(function(e){
     var pc=e.profit>0?'profit-pos':e.profit<0?'profit-neg':'';
+    var isUSD = e.currency === 'USD';
+    var fmtUSD = function(v) { return '$'+Number(v).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); };
+    var bpStr = e.bp ? (isUSD && e.bpOrig ? fmtUSD(e.bpOrig) : fmt(e.bp)) : '-';
+    var spStr = e.sp ? (isUSD && e.spOrig ? fmtUSD(e.spOrig) : fmt(e.sp)) : '-';
+    var tbStr = e.tb ? (isUSD && e.bpOrig ? fmtUSD(e.bpOrig * e.qty) : fmt(e.tb)) : '-';
+    var tsStr = e.ts ? (isUSD && e.spOrig ? fmtUSD(e.spOrig * e.qty) : fmt(e.ts)) : '-';
     var ps=e.type==='sell'?((e.profit>=0?'+':'')+fmt(e.profit)):'-';
-    return '<tr><td>'+e.date+'</td><td><span class="type-badge '+e.type+'">'+(e.type==='buy'?'매수':'매도')+'</span></td><td style="font-weight:500">'+e.stock+'</td><td style="color:var(--muted)">'+e.account+'</td><td>'+e.qty.toLocaleString()+'</td><td>'+(e.bp?fmt(e.bp):'-')+'</td><td>'+(e.sp?fmt(e.sp):'-')+'</td><td>'+(e.tb?fmt(e.tb):'-')+'</td><td>'+(e.ts?fmt(e.ts):'-')+'</td><td class="'+pc+'">'+ps+'</td><td style="color:var(--muted)">'+(e.note||'-')+'</td><td><button class="del-btn" onclick="deleteEntry('+e.id+')">✕</button></td></tr>';
+    return '<tr><td>'+e.date+'</td><td><span class="type-badge '+e.type+'">'+(e.type==='buy'?'매수':'매도')+'</span></td><td style="font-weight:500">'+e.stock+'</td><td style="color:var(--muted)">'+e.account+'</td><td>'+e.qty.toLocaleString()+'</td><td>'+bpStr+'</td><td>'+spStr+'</td><td>'+tbStr+'</td><td>'+tsStr+'</td><td class="'+pc+'">'+ps+'</td><td style="color:var(--muted)">'+(e.note||'-')+'</td><td><button class="del-btn" onclick="deleteEntry('+e.id+')">✕</button></td></tr>';
   }).join('');
   var tb=entries.reduce(function(s,e){return s+e.tb;},0);
   var ts=entries.reduce(function(s,e){return s+e.ts;},0);
@@ -1709,6 +1728,7 @@ function renderStocksPage() {
     return '<tr><td style="font-weight:500">'+s.name+'</td><td style="color:var(--muted);font-size:11px">'+s.ticker+'</td><td class="mono" style="font-weight:500">₩'+Number(s.price).toLocaleString('ko-KR')+'</td><td class="'+cls+'" style="font-weight:500">'+arrow+' '+(pct>=0?'+':'')+pct.toFixed(2)+'%</td>'
       +'<td>'+makeSelect(s.name,'section',sectionOpts,meta.section)+'</td>'
       +'<td>'+makeSelect(s.name,'asset',assetOpts,meta.asset)+'</td>'
+      +'<td>'+makeSelect(s.name,'status',statusOpts,meta.status)+'</td>'
       +'<td>'+makeSelect(s.name,'theme',themeOpts,meta.theme)+'</td></tr>';
   }).join('');
 }
