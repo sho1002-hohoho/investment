@@ -762,10 +762,16 @@ tbody tr:last-child td{border-bottom:none;}
         <div class="total-amount" id="totalAmountOverseas">&#8361; 0</div>
         <div class="return-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg><span id="totalReturnOverseas" style="color:var(--muted)">거래일지에서 추가하세요</span></div>
       </div>
-      <!-- 환율 id 유지 (JS 참조용, 화면 미표시) -->
-      <div style="display:none" id="fxRateCard">
-        <div id="fxTime"></div><div id="fxRate"></div><div id="fxChange"></div>
-        <div id="fxConverted"></div><div id="fxBase"></div>
+      <!-- 환율 카드 -->
+      <div class="card" id="fxRateCard" style="flex:0 0 200px;min-width:160px">
+        <div class="card-header">
+          <span class="card-title">USD / KRW</span>
+          <span id="fxTime" style="font-size:10px;color:var(--muted)">-</span>
+        </div>
+        <div style="font-size:26px;font-weight:600;font-family:'DM Mono',monospace;letter-spacing:-1px;margin-bottom:6px" id="fxRate">-</div>
+        <div style="font-size:11.5px;font-weight:500" id="fxChange">-</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:8px">원/달러 실시간 환율</div>
+        <div id="fxConverted" style="display:none"></div><div id="fxBase" style="display:none"></div>
       </div>
       <div class="card" style="flex:1;min-width:180px">
         <div class="card-header"><span style="font-size:13.5px;font-weight:500">양도세 체크</span><div id="taxYear" style="font-size:10px;color:var(--muted)"></div></div>
@@ -987,7 +993,7 @@ tbody tr:last-child td{border-bottom:none;}
           <thead><tr>
             <th style="width:16%;position:relative">종목명<span class="col-resizer"></span></th>
             <th style="width:11%;position:relative">티커<span class="col-resizer"></span></th>
-            <th style="width:20%;position:relative">현재가<span class="col-resizer"></span></th>
+            <th style="width:20%;position:relative;text-align:left">현재가<span class="col-resizer"></span></th>
             <th style="width:14%;position:relative">전일대비<span class="col-resizer"></span></th>
             <th style="width:13%;position:relative">섹션<span class="col-resizer"></span></th>
             <th style="width:13%;position:relative">자산구분<span class="col-resizer"></span></th>
@@ -1823,7 +1829,7 @@ function renderStocksPage() {
     var rawPrice=Number(s.price)||0;
     var priceKRW=isUSD?Math.round(rawPrice*fx):Math.round(rawPrice);
     var priceStr=isUSD
-      ?'<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">'
+      ?'<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;justify-content:flex-start">'
        +'<span style="font-weight:600">₩'+priceKRW.toLocaleString('ko-KR')+'</span>'
        +'<span style="color:var(--muted);font-size:10px;letter-spacing:-0.2px">$'+rawPrice.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'</span>'
        +'</div>'
@@ -1831,7 +1837,7 @@ function renderStocksPage() {
     return '<tr>'
       +'<td><div class="stock-name-cell"><div class="mini-icon">'+s.name[0]+'</div><span style="font-weight:500">'+s.name+'</span></div></td>'
       +'<td class="mono" style="color:var(--muted)">'+( s.ticker||'-')+'</td>'
-      +'<td class="mono" style="white-space:normal;vertical-align:middle">'+priceStr+'</td>'
+      +'<td class="mono" style="white-space:normal;vertical-align:middle;text-align:left">'+priceStr+'</td>'
       +'<td class="mono '+cls+'">'+arrow+' '+(Math.abs(pct).toFixed(2))+'%</td>'
       +'<td>'+makeSelect(s.name,'section',sectionOpts,meta.section)+'</td>'
       +'<td>'+makeSelect(s.name,'asset',assetOpts,meta.asset)+'</td>'
