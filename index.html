@@ -762,17 +762,10 @@ tbody tr:last-child td{border-bottom:none;}
         <div class="total-amount" id="totalAmountOverseas">&#8361; 0</div>
         <div class="return-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg><span id="totalReturnOverseas" style="color:var(--muted)">거래일지에서 추가하세요</span></div>
       </div>
-      <!-- 해외주식: 환율 + 양도세 -->
-      <div class="card" style="flex:1;min-width:180px">
-        <div class="card-header"><span style="font-size:13.5px;font-weight:500">환율</span><div id="fxTime" style="font-size:10px;color:var(--muted)">-</div></div>
-        <div style="font-size:11px;color:var(--muted);margin-bottom:4px">USD / KRW</div>
-        <div style="font-size:26px;font-weight:600;font-family:'DM Mono',monospace;margin-bottom:4px" id="fxRate">-</div>
-        <div style="font-size:11px;margin-bottom:12px" id="fxChange">-</div>
-        <div style="border-top:1px solid var(--border);padding-top:10px">
-          <div style="font-size:11px;color:var(--muted);margin-bottom:4px">원화 환산 평가금액</div>
-          <div style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace" id="fxConverted">-</div>
-          <div style="font-size:10px;color:var(--muted);margin-top:2px" id="fxBase">USD 기준</div>
-        </div>
+      <!-- 환율 id 유지 (JS 참조용, 화면 미표시) -->
+      <div style="display:none" id="fxRateCard">
+        <div id="fxTime"></div><div id="fxRate"></div><div id="fxChange"></div>
+        <div id="fxConverted"></div><div id="fxBase"></div>
       </div>
       <div class="card" style="flex:1;min-width:180px">
         <div class="card-header"><span style="font-size:13.5px;font-weight:500">양도세 체크</span><div id="taxYear" style="font-size:10px;color:var(--muted)"></div></div>
@@ -1093,6 +1086,18 @@ function updateStockList() {
   dl.innerHTML = (liveData.stocks||[]).map(function(s){ return '<option value="'+s.name+'">'; }).join('');
 }
 function getLive(name) { return (liveData.stocks||[]).find(function(s){return s.name===name;})||null; }
+// 달러 종목 여부: 미국 거래소 접두사면 true, 한국 거래소 접두사 또는 티커 없으면 false
+function isUSDTicker(ticker) {
+  if (!ticker) return false;
+  if (/^(XKRX|XKOS|KRX|KOSPI|KOSDAQ|KQ|KS):/i.test(ticker)) return false;
+  if (/^(NASDAQ|NYSE|NYSEARCA|NYSEAMERICAN|AMEX|BATS):/i.test(ticker)) return true;
+  return false; // 알 수 없는 거래소는 원화로 안전하게 처리
+}
+// 종목명으로 달러 여부 반환 (live 데이터 티커 참조)
+function isUSDStock(name) {
+  var live = getLive(name);
+  return live ? isUSDTicker(live.ticker) : false;
+}
 
 // ── 종목 메타데이터 ──
 var _stockMeta = {};
@@ -1111,10 +1116,15 @@ function makeSelect(name,key,opts,cur) {
 // ── 계좌 데이터 계산 ──
 function getAcctStocks(accountName) {
   var map = {};
+  var _fx = window._fxRate || 1300;
   (window._entries||[]).filter(function(e){return e.account===accountName;}).slice().reverse().forEach(function(e){
-    if(!map[e.stock]) map[e.stock]={stock:e.stock,totalQty:0,totalBuy:0,realizedProfit:0};
-    if(e.type==='buy'){map[e.stock].totalQty+=e.qty;map[e.stock].totalBuy+=e.qty*e.bp;}
-    else{var avg=map[e.stock].totalQty>0?map[e.stock].totalBuy/map[e.stock].totalQty:0;map[e.stock].realizedProfit+=(e.sp-avg)*e.qty;map[e.stock].totalQty=Math.max(0,map[e.stock].totalQty-e.qty);map[e.stock].totalBuy=avg*map[e.stock].totalQty;}
+    if(!map[e.stock]) map[e.stock]={stock:e.stock,totalQty:0,totalBuy:0,realizedProfit:0,currency:e.currency||'KRW'};
+    // bp/sp: saveEntry에서 USD이면 이미 원화로 변환 저장됨.
+    // 단, 외부(CSV·시트)에서 들어온 currency=USD 거래는 bp가 달러일 수 있으므로 환산
+    var bpKRW = (e.currency==='USD' && e.bp < 10000) ? Math.round(e.bp * _fx) : e.bp;
+    var spKRW = (e.currency==='USD' && e.sp && e.sp < 10000) ? Math.round(e.sp * _fx) : e.sp;
+    if(e.type==='buy'){map[e.stock].totalQty+=e.qty;map[e.stock].totalBuy+=e.qty*bpKRW;}
+    else{var avg=map[e.stock].totalQty>0?map[e.stock].totalBuy/map[e.stock].totalQty:0;map[e.stock].realizedProfit+=(spKRW-avg)*e.qty;map[e.stock].totalQty=Math.max(0,map[e.stock].totalQty-e.qty);map[e.stock].totalBuy=avg*map[e.stock].totalQty;}
   });
   return Object.values(map).filter(function(s){return s.totalQty>0||s.totalBuy>0;});
 }
@@ -1223,19 +1233,17 @@ function renderAcctPage(key) {
   var cfg=acctMap[key]; if(!cfg) return;
   var stocks=getAcctStocks(cfg.acct), cash=getAcctCash(cfg.acct);
   var total=cash;
-  stocks.forEach(function(s){var live=getLive(s.stock),cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1));total+=cur*s.totalQty;});
+  var _fx=window._fxRate||1300;
+  stocks.forEach(function(s){
+    var live=getLive(s.stock),liveP=(live&&live.price)?live.price:null;
+    var cur=liveP?(isUSDStock(s.stock)?liveP*_fx:liveP):(s.totalBuy/Math.max(s.totalQty,1));
+    total+=cur*s.totalQty;
+  });
   var cost=stocks.reduce(function(s,st){return s+st.totalBuy;},0);
   var amtEl=document.getElementById(cfg.amtId);
   if(amtEl){
-    if(key==='overseas'){
-      // 해외주식: 원화 총액을 현재 환율로 달러 환산해서 표시
-      var fxNow=parseFloat((document.getElementById('fxRate')||{}).textContent||'0')||1300;
-      var totalUSD=fxNow>0?total/fxNow:0;
-      amtEl.textContent='$ '+totalUSD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-      window._overseasTotalKRW=total; // 원화 환산용 저장
-    } else {
-      amtEl.textContent='₩ '+Math.round(total).toLocaleString('ko-KR');
-    }
+    // 모든 계좌 원화 표시
+    amtEl.textContent='₩ '+Math.round(total).toLocaleString('ko-KR');
   }
   var retEl=document.getElementById(cfg.retId);
   if(retEl){if(cost>0){var p=total-cash-cost,pct=(p/cost*100).toFixed(2);retEl.textContent=(p>=0?'+':'')+pct+'% ('+(p>=0?'+':'')+Math.round(p).toLocaleString('ko-KR')+'원)';retEl.style.color=p>=0?'var(--green)':'var(--red)';}else{retEl.textContent='거래일지에서 추가하세요';retEl.style.color='var(--muted)';}}
@@ -1244,10 +1252,17 @@ function renderAcctPage(key) {
   if(tbody){
     if(!stocks.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">거래를 추가하면 표시돼요.</td></tr>';}
     else{tbody.innerHTML=stocks.map(function(s){
-      var avg=s.totalQty>0?s.totalBuy/s.totalQty:0,live=getLive(s.stock),cur=(live&&live.price)?live.price:avg,curVal=cur*s.totalQty,profit=curVal-s.totalBuy,pct=s.totalBuy>0?(profit/s.totalBuy*100):0;
+      var fx=window._fxRate||1300;
+      var avg=s.totalQty>0?s.totalBuy/s.totalQty:0;
+      var live=getLive(s.stock);
+      var livePrice=(live&&live.price)?live.price:null;
+      // 티커 기준으로 달러 종목 판별 (계좌가 아닌 종목 단위로 판별)
+      var curKRW=livePrice?(isUSDStock(s.stock)?Math.round(livePrice*fx):Math.round(livePrice)):Math.round(avg);
+      var avgKRW=Math.round(avg);
+      var curVal=curKRW*s.totalQty,profit=curVal-s.totalBuy,pct=s.totalBuy>0?(profit/s.totalBuy*100):0;
       return '<tr><td><div class="stock-name-cell"><div class="mini-icon">'+s.stock[0]+'</div><div><div style="font-weight:500">'+s.stock+'</div><div style="font-size:10.5px;color:var(--muted)">'+s.totalQty+'주</div></div></div></td>'
         +'<td><div class="'+(profit>=0?'up':'dn')+'" style="font-weight:500">'+(profit>=0?'+':'')+Math.round(profit).toLocaleString('ko-KR')+'원</div><div style="font-size:10.5px;color:'+(pct>=0?'var(--green)':'var(--red)')+'">'+(pct>=0?'+':'')+pct.toFixed(2)+'%</div></td>'
-        +'<td><div class="mono" style="font-weight:500">₩'+Math.round(cur).toLocaleString('ko-KR')+'</div><div style="font-size:10.5px;color:var(--muted)">₩'+Math.round(avg).toLocaleString('ko-KR')+'</div></td>'
+        +'<td><div class="mono" style="font-weight:500">₩'+curKRW.toLocaleString('ko-KR')+'</div><div style="font-size:10.5px;color:var(--muted)">₩'+avgKRW.toLocaleString('ko-KR')+'</div></td>'
         +'<td><div class="mono" style="font-weight:500">₩'+Math.round(curVal).toLocaleString('ko-KR')+'</div><div style="font-size:10.5px;color:var(--muted)">₩'+Math.round(s.totalBuy).toLocaleString('ko-KR')+'</div></td></tr>';
     }).join('');}
   }
@@ -1271,7 +1286,12 @@ function renderPensionDonuts() {
 // ── 해외주식 3단 도넛 ──
 function renderOverseasDonuts() {
   var stocks=getAcctStocks('해외계좌'),cash=getAcctCash('해외계좌'),total=cash,stockVals={};
-  stocks.forEach(function(s){var live=getLive(s.stock),cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1)),v=cur*s.totalQty;stockVals[s.stock]=v;total+=v;});
+  var _fx=window._fxRate||1300;
+  stocks.forEach(function(s){
+    var live=getLive(s.stock),liveP=(live&&live.price)?live.price:null;
+    var cur=liveP?(isUSDStock(s.stock)?liveP*_fx:liveP):(s.totalBuy/Math.max(s.totalQty,1));
+    var v=cur*s.totalQty;stockVals[s.stock]=v;total+=v;
+  });
   var dtEl=document.getElementById('donutTotalOverseas');if(dtEl)dtEl.textContent='₩'+Math.round(total).toLocaleString('ko-KR');
   var assetMap={},sectionMap={},stockMap={};
   stocks.forEach(function(s){var m=getStockMeta(s.stock);assetMap[m.asset||'미분류']=(assetMap[m.asset||'미분류']||0)+(stockVals[s.stock]||0);sectionMap[m.section||'미분류']=(sectionMap[m.section||'미분류']||0)+(stockVals[s.stock]||0);if(stockVals[s.stock]>0)stockMap[s.stock]=stockVals[s.stock];});
@@ -1383,12 +1403,7 @@ function fetchExchangeRate() {
     var timeEl=document.getElementById('fxTime');if(timeEl)timeEl.textContent=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 기준';
 
     // 해외주식 Total Asset → 원화로 표시
-    var stocks=getAcctStocks('해외계좌'),cash=getAcctCash('해외계좌');
-    var totalKRW=cash+stocks.reduce(function(s,st){var live=getLive(st.stock),p=(live&&live.price)?live.price:(st.totalBuy/Math.max(st.totalQty,1));return s+p*st.totalQty;},0);
-    var totalUSD=cur>0?totalKRW/cur:0;
-    var amtEl=document.getElementById('totalAmountOverseas');if(amtEl)amtEl.textContent='₩ '+Math.round(totalKRW).toLocaleString('ko-KR');
-    var cvEl=document.getElementById('fxConverted');if(cvEl)cvEl.textContent='₩'+Math.round(totalKRW).toLocaleString('ko-KR');
-    var baseEl=document.getElementById('fxBase');if(baseEl)baseEl.textContent='$'+totalUSD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+' 기준';
+    // 환율 갱신 후 refreshAll이 호출되므로 별도 overseas 갱신 불필요
 
     // 종목현황 재렌더 (환율 적용)
     if(typeof renderStocksPage==='function') renderStocksPage();
@@ -1774,8 +1789,7 @@ function renderStocksPage() {
   tbody.innerHTML=stocks.map(function(s){
     var pct=Number(s.changePct)||0,cls=pct>0?'up':pct<0?'dn':'',arrow=pct>0?'▲':pct<0?'▼':'─';
     var meta=getStockMeta(s.name);
-    var isKRW=/^(XKRX|XKOS|KRX|KOSPI|KOSDAQ|KQ|KS):/i.test(s.ticker)||(!s.ticker);
-    var isUSD=!isKRW;
+    var isUSD=isUSDTicker(s.ticker);
     var fx=window._fxRate||1300;
     var rawPrice=Number(s.price)||0;
     var priceKRW=isUSD?Math.round(rawPrice*fx):Math.round(rawPrice);
