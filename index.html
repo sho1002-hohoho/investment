@@ -1240,7 +1240,7 @@ function renderAcctPage(key) {
   var _fx=window._fxRate||1300;
   stocks.forEach(function(s){
     var live=getLive(s.stock),liveP=(live&&live.price)?live.price:null;
-    var isUSD=isUSDStock(s.stock);
+    var isUSD = isUSDTicker(live&&live.ticker) || s.currency==='USD' || key==='overseas';
     var cur=liveP?(isUSD?liveP*_fx:liveP):(s.totalBuy/Math.max(s.totalQty,1));
     total+=cur*s.totalQty;
   });
@@ -1261,9 +1261,9 @@ function renderAcctPage(key) {
       var avg=s.totalQty>0?s.totalBuy/s.totalQty:0;
       var live=getLive(s.stock);
       var livePrice=(live&&live.price)?live.price:null;
-      // 달러 종목 판별: live 티커 우선, 없으면 거래 currency 필드로 fallback
-      var isUSD=isUSDStock(s.stock);
-      // livePrice가 있으면 환산, 없으면 avg(이미 원화로 저장됨) 사용
+      // USD 여부: live 티커 우선 → 거래 currency 필드 → 해외계좌면 USD로 간주
+      var isUSD = isUSDTicker(live&&live.ticker) || s.currency==='USD' || key==='overseas';
+      // livePrice 있으면 환율 적용, 없으면 avg(원화로 저장됨) 사용
       var curKRW=livePrice?(isUSD?Math.round(livePrice*fx):Math.round(livePrice)):Math.round(avg);
       var avgKRW=Math.round(avg);
       var curVal=curKRW*s.totalQty,profit=curVal-s.totalBuy,pct=s.totalBuy>0?(profit/s.totalBuy*100):0;
@@ -1296,7 +1296,7 @@ function renderOverseasDonuts() {
   var _fx=window._fxRate||1300;
   stocks.forEach(function(s){
     var live=getLive(s.stock),liveP=(live&&live.price)?live.price:null;
-    var isUSD=isUSDStock(s.stock);
+    var isUSD = isUSDTicker(live&&live.ticker) || s.currency==='USD' || true; // 해외계좌는 항상 USD
     var cur=liveP?(isUSD?liveP*_fx:liveP):(s.totalBuy/Math.max(s.totalQty,1));
     var v=cur*s.totalQty;stockVals[s.stock]=v;total+=v;
   });
