@@ -30,11 +30,39 @@ function switchJournalTab(tab) {
 }
 function openCashModal(type) {
   window._cashType = type;
+  window._cashCurrency = 'KRW';
   document.getElementById('cashModalTitle').textContent = type === 'in' ? '입금' : '출금';
   document.getElementById('cDate').value   = new Date().toISOString().slice(0,10);
   document.getElementById('cAmount').value = '';
   document.getElementById('cNote').value   = '';
+  document.getElementById('cKrwResult').value = '';
+  // 입금일 때만 통화 선택 표시
+  var currGroup = document.getElementById('cCurrencyGroup');
+  if (currGroup) currGroup.style.display = type === 'in' ? 'flex' : 'none';
+  setCashCurrency('KRW');
   document.getElementById('cashModalOverlay').classList.add('open');
+}
+function setCashCurrency(cur) {
+  window._cashCurrency = cur;
+  var isUSD = cur === 'USD';
+  document.getElementById('cCurrKRW').className = 'type-btn buy'  + (!isUSD ? ' active' : '');
+  document.getElementById('cCurrUSD').className = 'type-btn sell' + ( isUSD ? ' active' : '');
+  document.getElementById('cAmountLabel').textContent = isUSD ? '달러 금액 ($)' : '금액 (원)';
+  document.getElementById('cAmount').placeholder = isUSD ? '0.00' : '0';
+  document.getElementById('cFxGroup').style.display      = isUSD ? 'block' : 'none';
+  document.getElementById('cKrwResultGroup').style.display = isUSD ? 'block' : 'none';
+  if (isUSD) {
+    var fxVal = window._fxRate || 1300;
+    document.getElementById('cFxRate').value = Math.round(fxVal);
+  }
+  calcCashKrw();
+}
+function calcCashKrw() {
+  if (window._cashCurrency !== 'USD') return;
+  var usd  = parseFloat(document.getElementById('cAmount').value) || 0;
+  var rate = parseFloat(document.getElementById('cFxRate').value) || 1300;
+  var krw  = Math.round(usd * rate);
+  document.getElementById('cKrwResult').value = krw > 0 ? '₩' + krw.toLocaleString('ko-KR') : '';
 }
 function closeCashModal() { document.getElementById('cashModalOverlay').classList.remove('open'); }
 function openModal() {
@@ -131,14 +159,34 @@ function saveEntry() {
   if (typeof refreshAll === 'function') refreshAll();
 }
 function saveCashEntry() {
-  var amount = parseFloat(document.getElementById('cAmount').value) || 0;
-  if (!amount) { alert('금액을 입력해주세요.'); return; }
+  var rawAmount = parseFloat(document.getElementById('cAmount').value) || 0;
+  if (!rawAmount) { alert('금액을 입력해주세요.'); return; }
+  var currency = window._cashCurrency || 'KRW';
+  var type     = window._cashType || 'in';
+  var amount   = rawAmount;
+  var usdAmount = 0, fxRate = 0;
+  if (currency === 'USD' && type === 'in') {
+    fxRate    = parseFloat(document.getElementById('cFxRate').value) || 1300;
+    usdAmount = rawAmount;
+    amount    = Math.round(rawAmount * fxRate); // 원화 환산값을 amount로 저장
+  }
   window._cashEntries = window._cashEntries || [];
-  var cashEntry = { id:Date.now(), date:document.getElementById('cDate').value, type:window._cashType||'in', account:document.getElementById('cAccount').value, amount:amount, note:document.getElementById('cNote').value };
+  var cashEntry = {
+    id:        Date.now(),
+    date:      document.getElementById('cDate').value,
+    type:      type,
+    account:   document.getElementById('cAccount').value,
+    amount:    amount,       // 항상 원화
+    currency:  currency,
+    usdAmount: usdAmount,    // 달러 원금 (USD일 때만)
+    fxRate:    fxRate,
+    note:      document.getElementById('cNote').value
+  };
   window._cashEntries.unshift(cashEntry);
   if (typeof postCashToSheet === 'function') postCashToSheet(cashEntry);
   closeCashModal();
   if (window.renderCashJournal) window.renderCashJournal();
+  if (typeof refreshAll === 'function') refreshAll();
 }
 var _pageDescs = {};
 function editDesc(id) {
@@ -451,7 +499,7 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="row">
       <div class="card holding-card">
-        <div class="card-header"><span class="card-title">Total Asset</span></div>
+        <div class="card-header"><span class="card-title">총 자산</span></div>
         <div class="total-amount" id="totalAmountSamsung">&#8361; 0</div>
         <div class="return-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg><span id="totalReturnSamsung" style="color:var(--muted)">거래일지에서 추가하세요</span></div>
       </div>
@@ -523,7 +571,7 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="row">
       <div class="card holding-card">
-        <div class="card-header"><span class="card-title">Total Asset</span></div>
+        <div class="card-header"><span class="card-title">총 자산</span></div>
         <div class="total-amount" id="totalAmountIsa">&#8361; 0</div>
         <div class="return-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg><span id="totalReturnIsa" style="color:var(--muted)">거래일지에서 추가하세요</span></div>
       </div>
@@ -632,7 +680,7 @@ tbody tr:last-child td{border-bottom:none;}
 
     <!-- CMA 목록 -->
     <div class="journal-table-wrap">
-      <div class="journal-table-header"><span style="font-size:13.5px;font-weight:500">💳 CMA 목록</span><button class="add-btn" onclick="openCmaModal()" style="background:var(--accent2)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>CMA 추가</button></div>
+      <div class="journal-table-header"><span style="font-size:13.5px;font-weight:500">💳 CMA 목록</span><div style="display:flex;gap:8px"><button class="csv-btn" onclick="openCmaWithdrawModal(null)">💸 CMA 인출</button><button class="add-btn" onclick="openCmaModal()" style="background:var(--accent2)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>CMA 추가</button></div></div>
       <div style="overflow-x:auto">
         <table class="jt"><thead><tr>
           <th>상품명</th><th>은행</th><th>잔액</th><th>금리</th><th>일 이자</th><th>연 예상 이자</th><th>인출</th><th></th>
@@ -677,10 +725,18 @@ tbody tr:last-child td{border-bottom:none;}
 
 <!-- CMA 인출 모달 -->
 <div class="modal-overlay" id="cmaWithdrawModalOverlay">
-  <div class="modal" style="width:360px">
+  <div class="modal" style="width:420px">
     <div class="modal-title"><span>CMA 인출</span><button class="modal-close" onclick="closeCmaWithdrawModal()">✕</button></div>
     <div class="form-grid">
+      <div class="form-group full"><label class="form-label">인출할 CMA</label>
+        <select class="form-select" id="cmaWithdrawSelect" onchange="onCmaWithdrawSelectChange()"></select>
+      </div>
       <div class="form-group full"><label class="form-label">인출 금액 (원)</label><input class="form-input" type="number" id="cmaWithdrawAmount" placeholder="0"></div>
+      <div class="form-group full"><label class="form-label">입금 계좌 (인출금 이동)</label>
+        <select class="form-select" id="cmaWithdrawToAccount">
+          <option>삼성계좌</option><option>ISA</option><option>연금저축</option><option>해외계좌</option><option>적금&CMA</option>
+        </select>
+      </div>
       <div class="form-group full"><label class="form-label">인출일</label><input class="form-input" type="date" id="cmaWithdrawDate"></div>
       <div class="form-group full"><label class="form-label">메모</label><input class="form-input" type="text" id="cmaWithdrawNote" placeholder="메모 (선택)"></div>
     </div>
@@ -724,7 +780,7 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="row">
       <div class="card holding-card">
-        <div class="card-header"><span class="card-title">Total Asset</span></div>
+        <div class="card-header"><span class="card-title">총 자산</span></div>
         <div class="total-amount" id="totalAmountPension">&#8361; 0</div>
         <div class="return-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg><span id="totalReturnPension" style="color:var(--muted)">거래일지에서 추가하세요</span></div>
       </div>
@@ -812,7 +868,7 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="row">
       <div class="card holding-card">
-        <div class="card-header"><span class="card-title">Total Asset</span></div>
+        <div class="card-header"><span class="card-title">총 자산</span></div>
         <div class="total-amount" id="totalAmountOverseas">&#8361; 0</div>
         <div class="return-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg><span id="totalReturnOverseas" style="color:var(--muted)">거래일지에서 추가하세요</span></div>
       </div>
@@ -1090,7 +1146,22 @@ tbody tr:last-child td{border-bottom:none;}
     <div class="form-grid">
       <div class="form-group full"><label class="form-label">날짜</label><input class="form-input" type="date" id="cDate"></div>
       <div class="form-group full"><label class="form-label">계좌</label><select class="form-select" id="cAccount"><option>삼성계좌</option><option>ISA</option><option>적금&CMA</option><option>CMA</option><option>연금저축</option><option>해외계좌</option></select></div>
-      <div class="form-group full"><label class="form-label">금액 (원)</label><input class="form-input" type="number" id="cAmount" placeholder="0"></div>
+      <div class="form-group full" id="cCurrencyGroup" style="display:none">
+        <label class="form-label">통화</label>
+        <div class="type-toggle">
+          <button class="type-btn buy active" id="cCurrKRW" onclick="setCashCurrency('KRW')">₩ 원화</button>
+          <button class="type-btn sell" id="cCurrUSD" onclick="setCashCurrency('USD')">$ 달러</button>
+        </div>
+      </div>
+      <div class="form-group full"><label class="form-label" id="cAmountLabel">금액 (원)</label><input class="form-input" type="number" id="cAmount" placeholder="0" oninput="calcCashKrw()"></div>
+      <div class="form-group full" id="cFxGroup" style="display:none">
+        <label class="form-label">적용 환율 (원/달러)</label>
+        <input class="form-input" type="number" id="cFxRate" placeholder="1300" oninput="calcCashKrw()">
+      </div>
+      <div class="form-group full" id="cKrwResultGroup" style="display:none">
+        <label class="form-label">원화 환산금액 (자동)</label>
+        <input class="form-input" type="text" id="cKrwResult" readonly style="color:var(--accent2);font-weight:600">
+      </div>
       <div class="form-group full"><label class="form-label">비고</label><input class="form-input" type="text" id="cNote" placeholder="메모 (선택)"></div>
     </div>
     <div class="modal-footer"><button class="btn-cancel" onclick="closeCashModal()">취소</button><button class="btn-save" onclick="saveCashEntry()">저장</button></div>
@@ -1337,11 +1408,13 @@ function renderSamsungTable() {
   }).join('');
 }
 function renderSamsungTotal() {
-  var stocks=getAcctStocks('삼성계좌'),total=0,cost=0;
-  stocks.forEach(function(s){var live=getLive(s.stock),cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1));total+=cur*s.totalQty;cost+=s.totalBuy;});
+  var stocks=getAcctStocks('삼성계좌'),stockVal=0,cost=0;
+  stocks.forEach(function(s){var live=getLive(s.stock),cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1));stockVal+=cur*s.totalQty;cost+=s.totalBuy;});
+  var cash=getAcctCash('삼성계좌');
+  var total=stockVal+cash; // 예수금 포함
   var el=document.getElementById('totalAmountSamsung'); if(el)el.textContent='₩ '+Math.round(total).toLocaleString('ko-KR');
   var ret=document.getElementById('totalReturnSamsung');
-  if(ret){if(cost>0){var p=total-cost,pct=(p/cost*100).toFixed(2);ret.textContent=(p>=0?'+':'')+pct+'% ('+(p>=0?'+':'')+Math.round(p).toLocaleString('ko-KR')+'원)';ret.style.color=p>=0?'var(--green)':'var(--red)';}else{ret.textContent='거래일지에서 추가하세요';ret.style.color='var(--muted)';}}
+  if(ret){if(total>0){var p=stockVal-cost,pct=(p/total*100).toFixed(2);ret.textContent=(p>=0?'+':'')+pct+'% ('+(p>=0?'+':'')+Math.round(p).toLocaleString('ko-KR')+'원)';ret.style.color=p>=0?'var(--green)':'var(--red)';}else{ret.textContent='거래일지에서 추가하세요';ret.style.color='var(--muted)';}}
 }
 function renderSamsungCash() {
   var bal=getAcctCash('삼성계좌'),el=document.getElementById('overviewCashSamsung');
@@ -1372,7 +1445,7 @@ function renderAcctPage(key) {
     amtEl.textContent='₩ '+Math.round(total).toLocaleString('ko-KR');
   }
   var retEl=document.getElementById(cfg.retId);
-  if(retEl){if(cost>0){var p=total-cash-cost,pct=(p/cost*100).toFixed(2);retEl.textContent=(p>=0?'+':'')+pct+'% ('+(p>=0?'+':'')+Math.round(p).toLocaleString('ko-KR')+'원)';retEl.style.color=p>=0?'var(--green)':'var(--red)';}else{retEl.textContent='거래일지에서 추가하세요';retEl.style.color='var(--muted)';}}
+  if(retEl){if(cost>0||total>0){var p=total-cash-cost,denom=(key==='isa'||key==='pension'||key==='overseas')?total:cost,pct=denom>0?(p/denom*100).toFixed(2):'0.00';retEl.textContent=(p>=0?'+':'')+pct+'% ('+(p>=0?'+':'')+Math.round(p).toLocaleString('ko-KR')+'원)';retEl.style.color=p>=0?'var(--green)':'var(--red)';}else{retEl.textContent='거래일지에서 추가하세요';retEl.style.color='var(--muted)';}}
   var cashEl=document.getElementById(cfg.cashId);if(cashEl){cashEl.textContent='₩'+Math.round(cash).toLocaleString('ko-KR');cashEl.style.color=cash>=0?'var(--green)':'var(--red)';}
   // 해외계좌 달러 예수금 표시
   if(key==='overseas'){
@@ -1601,7 +1674,9 @@ window.renderCashJournal = function() {
   if(empty)empty.style.display='none';
   tbody.innerHTML=entries.map(function(e){
     var badge=e.type==='in'?'<span class="type-badge buy">입금</span>':'<span class="type-badge sell">출금</span>';
-    return '<tr><td style="color:var(--muted)">'+e.date+'</td><td>'+badge+'</td><td style="color:var(--muted)">'+e.account+'</td><td class="'+(e.type==='in'?'up':'dn')+'" style="font-weight:500;font-family:DM Mono,monospace">'+(e.type==='in'?'+':'-')+'₩'+Math.round(e.amount).toLocaleString('ko-KR')+'</td><td style="color:var(--muted)">'+(e.note||'-')+'</td><td><button class="del-btn" onclick="deleteCashEntry('+e.id+')">✕</button></td></tr>';
+    var amtStr = (e.type==='in'?'+':'-') + '₩' + Math.round(e.amount).toLocaleString('ko-KR');
+      if (e.currency==='USD' && e.usdAmount) amtStr += '<span style="color:var(--muted);font-size:10.5px;margin-left:4px">($' + e.usdAmount.toFixed(2) + ')</span>';
+      return '<tr><td style="color:var(--muted)">'+e.date+'</td><td>'+badge+'</td><td style="color:var(--muted)">'+e.account+'</td><td class="'+(e.type==='in'?'up':'dn')+'" style="font-weight:500;font-family:DM Mono,monospace">'+amtStr+'</td><td style="color:var(--muted)">'+(e.note||'-')+'</td><td><button class="del-btn" onclick="deleteCashEntry('+e.id+')">✕</button></td></tr>';
   }).join('');
 };
 function deleteCashEntry(id) { window._cashEntries=(window._cashEntries||[]).filter(function(e){return e.id!==id;}); window.renderCashJournal(); }
@@ -2202,24 +2277,25 @@ function renderDashboard() {
       var profit = val - cash - cost, pct = cost>0?(profit/cost*100):0;
       acctRows.push({name:acct, val:val, profit:profit, pct:pct, type:'stock'});
     });
-    // 적금
-    var savingsEntries = window._savingsEntries||[];
-    var savingsCount = savingsEntries.length;
-    acctRows.push({name:'적금', val:savingsTotal, profit:0, pct:0, type:'saving', count:savingsCount});
-    // CMA
+    // 적금 + CMA → 안전자산 카드 하나로 합산
+    var safeTotal = savingsTotal + cmaTotal;
     var cmaEntries = window._cmaEntries||[];
-    var cmaDaily = cmaEntries.reduce(function(s,c){return s+Math.round(c.balance*(c.rate/100)/365);},0);
-    acctRows.push({name:'CMA', val:cmaTotal, profit:cmaDaily, pct:0, type:'cma', count:cmaEntries.length});
+    var savInt2 = (window._savingsEntries||[]).reduce(function(s,e){
+      var days=e.startDate?Math.floor((new Date()-new Date(e.startDate))/86400000):0;
+      return s+Math.round((e.principal||0)*(e.rate/100)*days/365);
+    },0);
+    var cmaDaily2 = cmaEntries.reduce(function(s,c){return s+Math.round(c.balance*(c.rate/100)/365);},0);
+    var safeProfit = savInt2 + cmaDaily2; // 적금 누적이자 + CMA 일이자
+    if (safeTotal > 0) acctRows.push({name:'안전자산', val:safeTotal, profit:safeProfit, pct:0, type:'safe'});
 
-    var colorMap = {'삼성계좌':'#3b7bff','ISA':'#22d87a','연금저축':'#a855f7','해외계좌':'#f59e0b','적금':'#06b6d4','CMA':'#ec4899'};
-    var iconMap  = {'삼성계좌':'📈','ISA':'🏦','연금저축':'💙','해외계좌':'🌍','적금':'💰','CMA':'💳'};
+    var colorMap = {'삼성계좌':'#3b7bff','ISA':'#22d87a','연금저축':'#a855f7','해외계좌':'#f59e0b','안전자산':'#06b6d4'};
+    var iconMap  = {'삼성계좌':'📈','ISA':'🏦','연금저축':'💙','해외계좌':'🌍','안전자산':'🏦'};
     portEl.innerHTML = acctRows.map(function(r){
       var color = colorMap[r.name]||'#6b6b80';
       var icon  = iconMap[r.name]||'•';
       var pctOfTotal = grandTotal > 0 ? (r.val / grandTotal * 100) : 0;
-      var profitVal = r.type==='cma'
-        ? (r.val>0 ? '+₩'+Math.round(r.profit).toLocaleString('ko-KR')+'/일' : '−')
-        : r.type==='saving' ? '원금'
+      var profitVal = r.type==='safe'
+        ? (r.profit>0 ? '+₩'+Math.round(r.profit).toLocaleString('ko-KR')+'/일' : '원금')
         : r.profit!==0 ? (r.profit>=0?'+':'')+Math.round(r.profit).toLocaleString('ko-KR')+'원' : '−';
       var profitPct = r.type==='stock'&&r.pct!==0 ? ' ('+( r.pct>=0?'+':'')+r.pct.toFixed(2)+'%)' : '';
       var profitColor = r.profit>=0?'#22d87a':'#ff4d6a';
@@ -2408,7 +2484,11 @@ function renderPerfTable() {
         result['전체'].profit += e.profit || 0;
       }
     });
-    // 적금/CMA → 안전자산 이자
+    // 적금/CMA → 안전자산에 원금을 buy로, 이자를 profit으로 반영
+    var savPrincipal = (window._savingsEntries||[]).reduce(function(s,e){return s+(e.principal||0);},0);
+    var cmaBal = (window._cmaEntries||[]).reduce(function(s,c){return s+(c.balance||0);},0);
+    result['안전자산'].buy += savPrincipal + cmaBal;
+    result['전체'].buy += savPrincipal + cmaBal;
     if (startYear <= thisYear && endYear >= thisYear) {
       var savInt = (window._savingsEntries||[]).reduce(function(s,e){
         var d=new Date(); var days=e.startDate?Math.floor((d-new Date(e.startDate))/86400000):0;
@@ -2416,6 +2496,7 @@ function renderPerfTable() {
       },0);
       var cmaInt = (window._cmaEntries||[]).reduce(function(s,c){return s+Math.round((c.balance||0)*(c.rate/100));},0);
       result['안전자산'].profit += savInt + cmaInt;
+      result['전체'].profit += savInt + cmaInt;
     }
     return result;
   }
@@ -2615,14 +2696,27 @@ function deleteCmaEntry(id) { window._cmaEntries=window._cmaEntries.filter(funct
 
 var _cmaWithdrawId = null;
 function openCmaWithdrawModal(id) {
-  _cmaWithdrawId = id;
-  var c = (window._cmaEntries||[]).find(function(e){ return e.id===id; });
-  if (!c) return;
+  var cmas = window._cmaEntries || [];
+  if (!cmas.length) { alert('등록된 CMA가 없어요.'); return; }
+  // 드롭다운 채우기
+  var sel = document.getElementById('cmaWithdrawSelect');
+  sel.innerHTML = cmas.map(function(c) {
+    return '<option value="'+c.id+'">'+c.name+' ('+fmt(c.balance)+')</option>';
+  }).join('');
+  // 특정 id가 있으면 선택
+  if (id) sel.value = id;
+  _cmaWithdrawId = parseInt(sel.value);
+  onCmaWithdrawSelectChange();
   document.getElementById('cmaWithdrawAmount').value = '';
   document.getElementById('cmaWithdrawDate').value = new Date().toISOString().slice(0,10);
   document.getElementById('cmaWithdrawNote').value = '';
-  document.getElementById('cmaWithdrawInfo').textContent = c.name + ' 현재 잔액: ' + fmt(c.balance);
   document.getElementById('cmaWithdrawModalOverlay').classList.add('open');
+}
+function onCmaWithdrawSelectChange() {
+  _cmaWithdrawId = parseInt(document.getElementById('cmaWithdrawSelect').value);
+  var c = (window._cmaEntries||[]).find(function(e){ return e.id===_cmaWithdrawId; });
+  var infoEl = document.getElementById('cmaWithdrawInfo');
+  if (infoEl) infoEl.textContent = c ? c.name + ' 현재 잔액: ' + fmt(c.balance) : '';
 }
 function closeCmaWithdrawModal() { document.getElementById('cmaWithdrawModalOverlay').classList.remove('open'); }
 function saveCmaWithdraw() {
@@ -2631,10 +2725,27 @@ function saveCmaWithdraw() {
   var c = (window._cmaEntries||[]).find(function(e){ return e.id===_cmaWithdrawId; });
   if (!c) return;
   if (amount > c.balance) { alert('인출 금액이 잔액을 초과합니다.\n현재 잔액: ' + fmt(c.balance)); return; }
+  var toAccount = document.getElementById('cmaWithdrawToAccount').value;
+  var date      = document.getElementById('cmaWithdrawDate').value;
+  var note      = document.getElementById('cmaWithdrawNote').value || (c.name + ' CMA 인출');
   // CMA 잔액 차감
   c.balance = Math.round(c.balance - amount);
   saveSavingsData();
+  // 입금 계좌 예수금에 자동 입금
+  window._cashEntries = window._cashEntries || [];
+  var cashEntry = {
+    id:       Date.now(),
+    date:     date,
+    type:     'in',
+    account:  toAccount,
+    amount:   amount,
+    currency: 'KRW',
+    note:     note
+  };
+  window._cashEntries.unshift(cashEntry);
+  if (typeof postCashToSheet === 'function') postCashToSheet(cashEntry);
   closeCmaWithdrawModal();
+  if (window.renderCashJournal) window.renderCashJournal();
   renderSavingsPage();
   refreshAll();
 }
