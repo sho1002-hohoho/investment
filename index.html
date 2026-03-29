@@ -1073,11 +1073,26 @@ function postTradeToSheet(entry) {
 function fetchLiveData(manual) {
   ['apiStatus','apiStatus2'].forEach(function(id){ var el=document.getElementById(id); if(el){el.className='api-status loading';el.textContent='● 불러오는 중...';} });
   fetch(API_URL).then(function(r){return r.json();}).then(function(data){
+    // ── 디버그: 구글시트에서 넘어온 원본 데이터 확인 ──
+    console.group('[Stock API] 원본 데이터');
+    console.log('전체:', data);
+    (data.stocks||[]).forEach(function(s){
+      var fx = window._fxRate || 1300;
+      var isUSD = isUSDTicker(s.ticker);
+      console.log(
+        s.name,
+        '| ticker:', s.ticker,
+        '| price(원본):', s.price,
+        '| USD?:', isUSD,
+        isUSD ? '→ 원화환산: ₩' + Math.round(s.price * fx).toLocaleString() : '→ 원화: ₩' + Math.round(s.price).toLocaleString()
+      );
+    });
+    console.groupEnd();
     liveData = data;
     ['apiStatus','apiStatus2'].forEach(function(id){ var el=document.getElementById(id); if(el){el.className='api-status ok';el.textContent='● 실시간 연동';} });
     updateStockList();
     refreshAll();
-    if (manual) alert('갱신 완료!');
+    if (manual) alert('갱신 완료! 콘솔(F12)에서 원본 데이터를 확인하세요.');
   }).catch(function(){
     ['apiStatus','apiStatus2'].forEach(function(id){ var el=document.getElementById(id); if(el){el.className='api-status err';el.textContent='● 연결 실패';} });
   });
@@ -1090,9 +1105,14 @@ function getLive(name) { return (liveData.stocks||[]).find(function(s){return s.
 // 달러 종목 여부: 미국 거래소 접두사면 true, 한국 거래소 접두사 또는 티커 없으면 false
 function isUSDTicker(ticker) {
   if (!ticker) return false;
-  if (/^(XKRX|XKOS|KRX|KOSPI|KOSDAQ|KQ|KS):/i.test(ticker)) return false;
+  // 한국 거래소 접두사 → 원화
+  if (/^(XKRX|XKOS|KRX|KOSPI|KOSDAQ|KQ|KS)[:\s]/i.test(ticker)) return false;
+  // 미국 거래소 접두사 → 달러
   if (/^(NASDAQ|NYSE|NYSEARCA|NYSEAMERICAN|AMEX|BATS):/i.test(ticker)) return true;
-  return false; // 알 수 없는 거래소는 원화로 안전하게 처리
+  // 접두사 없이 순수 영문만인 티커(NVDA, AMD, GOOGL 등) → 미국 주식으로 판별
+  if (/^[A-Z]{1,5}$/.test(ticker.trim())) return true;
+  // 숫자가 포함된 티커(005930, 0167Z0 등) → 한국 주식
+  return false;
 }
 // 종목명으로 달러 여부 반환 (live 데이터 티커 참조, 없으면 거래 내역의 currency 필드로 fallback)
 function isUSDStock(name) {
