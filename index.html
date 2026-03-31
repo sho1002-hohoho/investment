@@ -406,39 +406,12 @@ tbody tr:last-child td{border-bottom:none;}
   }
   #mobileNavOverlay.open { display: block; }
   #mobileNav.open { transform: translateX(0); }
-
-  /* 전체 레이아웃 */
-  body { flex-direction: column; }
-  .page { height: auto; min-height: 100vh; }
-  .content { padding: 12px 14px; gap: 12px; }
-  .journal-content { padding: 12px 14px; gap: 12px; }
-
-  /* row → 세로 배치 */
-  .row { flex-direction: column; }
-
-  /* 카드 너비 100% */
-  .card { width: 100% !important; flex: none !important; min-width: unset !important; }
-  .holding-card { flex: none !important; width: 100% !important; }
-  .overview-card { flex: none !important; width: 100% !important; }
-  .portfolio-card { flex: none !important; width: 100% !important; }
-
-  /* topbar */
-  .topbar { padding: 0 12px; gap: 8px; height: 50px; min-height: 50px; }
-  .search-bar { max-width: 100%; }
-
-  /* 도넛 차트 중앙 정렬 */
-  .card canvas { max-width: 100%; }
-
-  /* summary row */
-  .summary-row { flex-wrap: wrap; }
-  .summary-card { flex: 1 1 calc(50% - 6px); min-width: 140px; }
-
-  /* 테이블 가로 스크롤 */
-  .journal-table-wrap { overflow-x: auto; }
-  table { min-width: 500px; }
-
-  /* total-amount 폰트 축소 */
-  .total-amount { font-size: 22px; }
+}
+/* 데스크탑에서 모바일 요소 완전 숨김 */
+@media (min-width: 769px) {
+  #mobileNav { display: none !important; }
+  #mobileNavOverlay { display: none !important; }
+  #mobileMenuBtn { display: none !important; }
 }
 </style>
 </head>
