@@ -2708,26 +2708,52 @@ function renderPerfTable() {
   }
 
   // 기간별 수익 계산
-  function calcPeriod(startYear, endYear) {
+  // isCurrent=true 이면 보유 종목 현재가 기반 미실현손익 포함 (올해 현재 기준)
+  function calcPeriod(startYear, endYear, isCurrent) {
     var result = {'국내주식':{profit:0,buy:0},'해외주식':{profit:0,buy:0},'채권':{profit:0,buy:0},'배당주':{profit:0,buy:0},'리츠':{profit:0,buy:0},'금':{profit:0,buy:0},'안전자산':{profit:0,buy:0},'전체':{profit:0,buy:0}};
-    entries.forEach(function(e) {
-      var y = parseInt((e.date||'').slice(0,4));
-      if (y < startYear || y > endYear) return;
-      var cat = classifyEntry(e);
-      if (e.type === 'buy') {
-        result[cat].buy += e.tb || 0;
-        result['전체'].buy += e.tb || 0;
-      } else if (e.type === 'sell') {
-        result[cat].profit += e.profit || 0;
-        result['전체'].profit += e.profit || 0;
-      }
-    });
-    // 적금/CMA → 안전자산에 원금을 buy로, 이자를 profit으로 반영
+    var fx = window._fxRate || 1300;
+
+    if (isCurrent) {
+      // 현재까지 기준: 현재 보유 종목의 평가금액 vs 매수금액
+      var allAccounts = ['삼성계좌','ISA','연금저축','해외계좌'];
+      allAccounts.forEach(function(acct) {
+        getAcctStocks(acct).forEach(function(s) {
+          if (s.totalQty <= 0) return;
+          var cat = classifyEntry({stock:s.stock, account:acct});
+          var live = getLive(s.stock);
+          var livePrice = live && live.price ? live.price : null;
+          var isUSD = isUSDTicker(live&&live.ticker) || acct==='해외계좌';
+          var curKRW = livePrice ? (isUSD ? livePrice*fx : livePrice) : (s.totalBuy/Math.max(s.totalQty,1));
+          var curVal = curKRW * s.totalQty;
+          var profit = curVal - s.totalBuy;
+          result[cat].buy    += s.totalBuy;
+          result[cat].profit += profit;
+          result['전체'].buy    += s.totalBuy;
+          result['전체'].profit += profit;
+        });
+      });
+    } else {
+      // 과거 연도: 매도 실현손익 기준
+      entries.forEach(function(e) {
+        var y = parseInt((e.date||'').slice(0,4));
+        if (y < startYear || y > endYear) return;
+        var cat = classifyEntry(e);
+        if (e.type === 'buy') {
+          result[cat].buy += e.tb || 0;
+          result['전체'].buy += e.tb || 0;
+        } else if (e.type === 'sell') {
+          result[cat].profit += e.profit || 0;
+          result['전체'].profit += e.profit || 0;
+        }
+      });
+    }
+
+    // 적금/CMA → 안전자산
     var savPrincipal = (window._savingsEntries||[]).reduce(function(s,e){return s+(e.principal||0);},0);
     var cmaBal = (window._cmaEntries||[]).reduce(function(s,c){return s+(c.balance||0);},0);
     result['안전자산'].buy += savPrincipal + cmaBal;
     result['전체'].buy += savPrincipal + cmaBal;
-    if (startYear <= thisYear && endYear >= thisYear) {
+    if (isCurrent || (startYear <= thisYear && endYear >= thisYear)) {
       var savInt = (window._savingsEntries||[]).reduce(function(s,e){
         var d=new Date(); var days=e.startDate?Math.floor((d-new Date(e.startDate))/86400000):0;
         return s+Math.round((e.principal||0)*(e.rate/100)*days/365);
@@ -2739,12 +2765,12 @@ function renderPerfTable() {
     return result;
   }
 
-  var periodY0 = calcPeriod(thisYear,   thisYear);
-  var periodY1 = calcPeriod(lastYear,   lastYear);
-  var periodY2 = calcPeriod(lastYear-1, lastYear-1);
-  var periodAll = calcPeriod(2000,      thisYear);
+  var periodY0  = calcPeriod(thisYear,   thisYear,   true);   // 올해 현재 기준 (현재가 반영)
+  var periodY1  = calcPeriod(lastYear,   lastYear,   false);  // 지난해 연말 기준 (실현손익)
+  var periodY2  = calcPeriod(lastYear-1, lastYear-1, false);  // 2년전 연말 기준
+  var periodAll = calcPeriod(2000,       thisYear,   true);   // 전체 현재 기준
 
-  var c1=document.getElementById('perfCol1Label'); if(c1)c1.textContent=thisYear+'년';
+  var c1=document.getElementById('perfCol1Label'); if(c1)c1.textContent=thisYear+'년 현재';
   var c2=document.getElementById('perfCol2Label'); if(c2)c2.textContent=lastYear+'년';
   var c3=document.getElementById('perfCol3Label'); if(c3)c3.textContent=(lastYear-1)+'년';
   var c4=document.getElementById('perfCol4Label'); if(c4)c4.textContent='전체';
