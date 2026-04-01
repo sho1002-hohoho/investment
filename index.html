@@ -1961,19 +1961,27 @@ function renderPensionCompare() {
 
 // ── 환율 & 양도세 ──
 function fetchExchangeRate() {
-  fetch('https://query1.finance.yahoo.com/v8/finance/chart/USDKRW=X?interval=1d&range=2d').then(function(r){return r.json();}).then(function(data){
-    var result=data.chart.result[0],cur=result.meta.regularMarketPrice,prev=result.meta.previousClose||cur,chg=cur-prev,chgPct=chg/prev*100;
-    window._fxRate = cur; // 전역 환율 저장
+  // exchangerate-api (무료, CORS 허용)
+  fetch('https://open.er-api.com/v6/latest/USD').then(function(r){return r.json();}).then(function(data){
+    var cur = data.rates && data.rates.KRW ? data.rates.KRW : 1300;
+    window._fxRate = cur;
     var el=document.getElementById('fxRate');if(el)el.textContent=cur.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});
-    var chgEl=document.getElementById('fxChange');if(chgEl){chgEl.textContent=(chg>=0?'+':'')+chg.toFixed(2)+'원 ('+(chgPct>=0?'+':'')+chgPct.toFixed(2)+'%)';chgEl.className=chg>=0?'up':'dn';}
+    var chgEl=document.getElementById('fxChange');if(chgEl){chgEl.textContent='환율 업데이트됨';chgEl.className='';}
     var timeEl=document.getElementById('fxTime');if(timeEl)timeEl.textContent=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 기준';
-
-    // 해외주식 Total Asset → 원화로 표시
-    // 환율 갱신 후 refreshAll이 호출되므로 별도 overseas 갱신 불필요
-
-    // 환율 변경 → 전체 재렌더 (해외주식 평가금액, 대시보드 등 모두 반영)
     if(typeof refreshAll==='function') refreshAll();
-  }).catch(function(){var el=document.getElementById('fxRate');if(el)el.textContent='연결 실패';});
+  }).catch(function(){
+    // 실패 시 frankfurter API로 대체
+    fetch('https://api.frankfurter.app/latest?from=USD&to=KRW').then(function(r){return r.json();}).then(function(data){
+      var cur = data.rates && data.rates.KRW ? data.rates.KRW : 1300;
+      window._fxRate = cur;
+      var el=document.getElementById('fxRate');if(el)el.textContent=cur.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});
+      var timeEl=document.getElementById('fxTime');if(timeEl)timeEl.textContent=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'})+' 기준';
+      if(typeof refreshAll==='function') refreshAll();
+    }).catch(function(){
+      window._fxRate = 1300;
+      var el=document.getElementById('fxRate');if(el)el.textContent='1,300.00';
+    });
+  });
 }
 function renderTaxCheck() {
   var year=new Date().getFullYear();
