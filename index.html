@@ -1493,13 +1493,27 @@ function renderPerfChart(canvasId,account,range) {
   var days={'1w':7,'1m':30,'3m':90,'6m':180,'1y':365}[range]||90;
   var cutoff=new Date(); cutoff.setDate(cutoff.getDate()-days);
   history=history.filter(function(h){return new Date(h.date)>=cutoff;});
-  var labels,data,color;
-  if(history.length>=1){labels=history.map(function(h){return new Date(h.date).toLocaleDateString('ko-KR',{month:'short',day:'numeric'});});data=history.map(function(h){return h.profitRate;});color=data[data.length-1]>=0?'#22d87a':'#ff4d6a';}
-  else{labels=['데이터 없음'];data=[0];color='#3b7bff';}
+  var labels,rateData,evalData,color;
+  if(history.length>=1){
+    labels=history.map(function(h){return new Date(h.date).toLocaleDateString('ko-KR',{month:'short',day:'numeric'});});
+    rateData=history.map(function(h){return h.profitRate;});
+    evalData=history.map(function(h){return h.totalEval;});
+    color=rateData[rateData.length-1]>=0?'#22d87a':'#ff4d6a';
+  } else {
+    labels=['데이터 없음']; rateData=[0]; evalData=[0]; color='#3b7bff';
+  }
   var ctx=canvas.getContext('2d');
-  var bgColor=color==='#22d87a'?'rgba(34,216,122,0.15)':color==='#ff4d6a'?'rgba(255,77,106,0.15)':'rgba(59,123,255,0.15)';
+  var bgColor=color==='#22d87a'?'rgba(34,216,122,0.10)':color==='#ff4d6a'?'rgba(255,77,106,0.10)':'rgba(59,123,255,0.10)';
+  var ptFn=function(c){return c.chart.data.labels.length<=1?5:0;};
   if(_perfCharts[canvasId]) _perfCharts[canvasId].destroy();
-  _perfCharts[canvasId]=new Chart(ctx,{type:'line',data:{labels:labels,datasets:[{data:data,fill:true,backgroundColor:bgColor,borderColor:color,borderWidth:2,pointRadius:function(ctx){return ctx.chart.data.labels.length<=1?5:0;},pointHoverRadius:6,pointHoverBackgroundColor:color,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2,tension:0.4}]},
+  _perfCharts[canvasId]=new Chart(ctx,{
+    type:'line',
+    data:{labels:labels,datasets:[
+      // 수익률 (좌축)
+      {label:'수익률',data:rateData,yAxisID:'yRate',fill:true,backgroundColor:bgColor,borderColor:color,borderWidth:2,pointRadius:ptFn,pointHoverRadius:6,pointHoverBackgroundColor:color,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2,tension:0.4},
+      // 총평가금액 (우축)
+      {label:'자산',data:evalData,yAxisID:'yEval',fill:false,borderColor:'rgba(168,85,247,0.7)',borderWidth:1.5,borderDash:[4,3],pointRadius:ptFn,pointHoverRadius:5,pointHoverBackgroundColor:'#a855f7',tension:0.4}
+    ]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
     plugins:{legend:{display:false},tooltip:{
       backgroundColor:'rgba(16,16,28,0.92)',
@@ -1508,13 +1522,21 @@ function renderPerfChart(canvasId,account,range) {
       titleColor:'#6b6b80',
       bodyColor:'#f0f0f5',
       padding:10,
-      displayColors:false,
+      displayColors:true,
       callbacks:{
         title:function(items){return items[0].label;},
-        label:function(c){var v=c.parsed.y;return '수익률: '+(v>=0?'+':'')+v.toFixed(2)+'%';}
+        label:function(c){
+          if(c.dataset.label==='수익률'){var v=c.parsed.y;return '수익률: '+(v>=0?'+':'')+v.toFixed(2)+'%';}
+          return '자산: ₩'+Math.round(c.parsed.y).toLocaleString('ko-KR');
+        }
       }
+    }},
+    scales:{
+      x:{grid:{display:false},ticks:{color:'#6b6b80',font:{size:10},maxTicksLimit:8,maxRotation:0},border:{display:false}},
+      yRate:{position:'left',grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b6b80',font:{size:10},callback:function(v){return v.toFixed(1)+'%';},maxTicksLimit:5},border:{display:false}},
+      yEval:{position:'right',grid:{display:false},ticks:{color:'rgba(168,85,247,0.6)',font:{size:10},callback:function(v){if(v>=100000000)return (v/100000000).toFixed(1)+'억';if(v>=10000)return Math.round(v/10000)+'만';return v;},maxTicksLimit:4},border:{display:false}}
     }}
-    ,scales:{x:{grid:{display:false},ticks:{color:'#6b6b80',font:{size:10},maxTicksLimit:8,maxRotation:0},border:{display:false}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b6b80',font:{size:10},callback:function(v){return v.toFixed(1)+'%';},maxTicksLimit:5},border:{display:false}}}}});
+  });
 }
 function renderAcctChart(account,range,tabEl) {
   var canvasMap={'ISA':'perfChartIsa','연금저축':'perfChartPension','해외계좌':'perfChartOverseas'};
