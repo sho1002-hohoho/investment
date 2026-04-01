@@ -163,6 +163,20 @@ function saveEntry() {
     window._cashEntries.unshift(autoCashEntry);
     if (typeof postCashToSheet === 'function') postCashToSheet(autoCashEntry);
   }
+  // 매수 시 매수금액을 해당 계좌 예수금에서 자동 출금
+  if (type === 'buy' && qty * bp > 0) {
+    window._cashEntries = window._cashEntries || [];
+    var autoBuyCashEntry = {
+      id: Date.now() + 2,
+      date: entry.date,
+      type: 'out',
+      account: account,
+      amount: qty * bp,
+      note: stock + ' 매수대금 자동출금'
+    };
+    window._cashEntries.unshift(autoBuyCashEntry);
+    if (typeof postCashToSheet === 'function') postCashToSheet(autoBuyCashEntry);
+  }
 
   if (typeof postTradeToSheet === 'function') postTradeToSheet(entry);
   closeModal();
