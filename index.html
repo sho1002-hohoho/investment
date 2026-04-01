@@ -1492,8 +1492,21 @@ function renderPerfChart(canvasId,account,range) {
   var ctx=canvas.getContext('2d');
   var bgColor=color==='#22d87a'?'rgba(34,216,122,0.15)':color==='#ff4d6a'?'rgba(255,77,106,0.15)':'rgba(59,123,255,0.15)';
   if(_perfCharts[canvasId]) _perfCharts[canvasId].destroy();
-  _perfCharts[canvasId]=new Chart(ctx,{type:'line',data:{labels:labels,datasets:[{data:data,fill:true,backgroundColor:bgColor,borderColor:color,borderWidth:2,pointRadius:0,pointHoverRadius:5,tension:0.4}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return (c.parsed.y>=0?'+':'')+c.parsed.y.toFixed(2)+'%';}}}}
+  _perfCharts[canvasId]=new Chart(ctx,{type:'line',data:{labels:labels,datasets:[{data:data,fill:true,backgroundColor:bgColor,borderColor:color,borderWidth:2,pointRadius:0,pointHoverRadius:6,pointHoverBackgroundColor:color,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2,tension:0.4}]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+    plugins:{legend:{display:false},tooltip:{
+      backgroundColor:'rgba(16,16,28,0.92)',
+      borderColor:'rgba(255,255,255,0.08)',
+      borderWidth:1,
+      titleColor:'#6b6b80',
+      bodyColor:'#f0f0f5',
+      padding:10,
+      displayColors:false,
+      callbacks:{
+        title:function(items){return items[0].label;},
+        label:function(c){var v=c.parsed.y;return '수익률: '+(v>=0?'+':'')+v.toFixed(2)+'%';}
+      }
+    }}
     ,scales:{x:{grid:{display:false},ticks:{color:'#6b6b80',font:{size:10},maxTicksLimit:8,maxRotation:0},border:{display:false}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b6b80',font:{size:10},callback:function(v){return v.toFixed(1)+'%';},maxTicksLimit:5},border:{display:false}}}}});
 }
 function renderAcctChart(account,range,tabEl) {
