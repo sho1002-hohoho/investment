@@ -430,6 +430,53 @@ tbody tr:last-child td{border-bottom:none;}
 </style>
 </head>
 <body>
+<!-- 비밀번호 화면 -->
+<div id="lockScreen" style="display:flex;position:fixed;inset:0;background:#0a0a12;z-index:9999;align-items:center;justify-content:center;flex-direction:column;gap:20px">
+  <div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#f0f0f5">Stock <span style="color:#3b7bff">Portfolio</span></div>
+  <div style="background:#13131e;border:1px solid #2a2a3a;border-radius:16px;padding:32px 36px;display:flex;flex-direction:column;gap:16px;width:320px">
+    <div style="font-size:13px;color:#6b6b80;text-align:center">비밀번호를 입력하세요</div>
+    <input id="pwInput" type="password" placeholder="Password"
+      style="background:#1a1a2e;border:1px solid #2a2a3a;border-radius:10px;padding:12px 16px;color:#f0f0f5;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;text-align:center;letter-spacing:4px"
+      onkeydown="if(event.key==='Enter')checkPw()">
+    <button onclick="checkPw()"
+      style="background:#3b7bff;border:none;border-radius:10px;padding:12px;color:white;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">
+      입장
+    </button>
+    <div id="pwError" style="font-size:11.5px;color:#ff4d6a;text-align:center;display:none">비밀번호가 틀렸습니다</div>
+  </div>
+</div>
+<script>
+// 비밀번호 SHA-256 해시 (비번 변경 시 이 값만 교체)
+// 현재 비번: sho1002
+var PW_HASH = '4bc8c96f305db1149b79a3a8d42d33101c952b63acd89753650fb4416fe63af4';
+var AUTH_TOKEN = '';
+
+async function checkPw() {
+  var pw = document.getElementById('pwInput').value;
+  var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
+  var hash = Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+  if (hash === PW_HASH) {
+    // 토큰 생성 (세션 동안 사용)
+    AUTH_TOKEN = btoa(pw + ':' + Date.now());
+    try { sessionStorage.setItem('auth', AUTH_TOKEN); } catch(e){}
+    document.getElementById('lockScreen').style.display = 'none';
+  } else {
+    document.getElementById('pwError').style.display = 'block';
+    document.getElementById('pwInput').value = '';
+    document.getElementById('pwInput').focus();
+  }
+}
+
+// 세션에 이미 인증된 경우 바로 통과
+(function(){
+  try {
+    var saved = sessionStorage.getItem('auth');
+    if (saved) { AUTH_TOKEN = saved; document.getElementById('lockScreen').style.display = 'none'; }
+    else { document.getElementById('pwInput').focus(); }
+  } catch(e) {}
+})();
+</script>
+
 <!-- SIDEBAR -->
 <!-- 모바일 네비게이션 -->
 <div id="mobileNavOverlay" onclick="closeMobileNav()"></div>
@@ -1338,7 +1385,11 @@ tbody tr:last-child td{border-bottom:none;}
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ── 설정 ──
 var SHEET_URL = 'https://script.google.com/macros/s/AKfycbwZD1EkBSlBDy5Mlr73loEDIwg7zYekUvIK3efeproPOqFJgzN3LcwIw0iC4skaLWcj/exec';
-var API_URL   = 'https://corsproxy.io/?' + encodeURIComponent(SHEET_URL);
+function getApiUrl() {
+  var token = (typeof AUTH_TOKEN !== 'undefined' ? AUTH_TOKEN : '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('auth')||'' : '');
+  var url = SHEET_URL + '?token=' + encodeURIComponent(token);
+  return 'https://corsproxy.io/?' + encodeURIComponent(url);
+}
 var liveData  = {stocks:[
   {name:'KODEX 미국우주항공', ticker:'XKRX:0167Z0', price:10325, changePct:3.14},
   {name:'NVIDIA', ticker:'NASDAQ:NVDA', price:115.43, changePct:2.87}
@@ -1364,14 +1415,16 @@ function calcTotal() {
 
 // ── API ──
 function postTradeToSheet(entry) {
-  fetch(SHEET_URL, {method:'POST', body:JSON.stringify({action:'trade',date:entry.date,type:entry.type,stock:entry.stock,account:entry.account,qty:entry.qty,bp:entry.bp,sp:entry.sp})}).catch(function(){});
+  var _tk=typeof AUTH_TOKEN!=='undefined'?AUTH_TOKEN:'';
+  fetch(SHEET_URL, {method:'POST', body:JSON.stringify(Object.assign({token:_tk},{action:'trade',date:entry.date,type:entry.type,stock:entry.stock,account:entry.account,qty:entry.qty,bp:entry.bp,sp:entry.sp}))}).catch(function(){});
 }
 function postCashToSheet(entry) {
-  fetch(SHEET_URL, {method:'POST', body:JSON.stringify({action:'cash',date:entry.date,type:entry.type,account:entry.account,amount:entry.amount,note:entry.note||''})}).catch(function(){});
+  var _tk2=typeof AUTH_TOKEN!=='undefined'?AUTH_TOKEN:'';
+  fetch(SHEET_URL, {method:'POST', body:JSON.stringify(Object.assign({token:_tk2},{action:'cash',date:entry.date,type:entry.type,account:entry.account,amount:entry.amount,note:entry.note||''}))}).catch(function(){});
 }
 function fetchLiveData(manual) {
   ['apiStatus','apiStatus2'].forEach(function(id){ var el=document.getElementById(id); if(el){el.className='api-status loading';el.textContent='● 불러오는 중...';} });
-  fetch(API_URL).then(function(r){return r.json();}).then(function(data){
+  fetch(getApiUrl()).then(function(r){return r.json();}).then(function(data){
     // ── 디버그: 구글시트에서 넘어온 원본 데이터 확인 ──
     console.group('[Stock API] 원본 데이터');
     console.log('전체:', data);
