@@ -435,6 +435,7 @@ tbody tr:last-child td{border-bottom:none;}
   <div style="font-size:22px;font-weight:700;letter-spacing:-0.5px;color:#f0f0f5">Stock <span style="color:#3b7bff">Portfolio</span></div>
   <div style="background:#13131e;border:1px solid #2a2a3a;border-radius:16px;padding:32px 36px;display:flex;flex-direction:column;gap:16px;width:320px">
     <div style="font-size:13px;color:#6b6b80;text-align:center">비밀번호를 입력하세요</div>
+    <div style="font-size:11px;color:#3b7bff;text-align:center;background:rgba(59,123,255,0.08);border-radius:8px;padding:8px 12px">💡 힌트: 아이디</div>
     <input id="pwInput" type="password" placeholder="Password"
       style="background:#1a1a2e;border:1px solid #2a2a3a;border-radius:10px;padding:12px 16px;color:#f0f0f5;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;text-align:center;letter-spacing:4px"
       onkeydown="if(event.key==='Enter')checkPw()">
@@ -442,7 +443,8 @@ tbody tr:last-child td{border-bottom:none;}
       style="background:#3b7bff;border:none;border-radius:10px;padding:12px;color:white;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer">
       입장
     </button>
-    <div id="pwError" style="font-size:11.5px;color:#ff4d6a;text-align:center;display:none">비밀번호가 틀렸습니다</div>
+    <div id="pwError" style="font-size:11.5px;color:#ff4d6a;text-align:center;display:none"></div>
+    <div id="pwAttempts" style="font-size:11px;color:#6b6b80;text-align:center;display:none"></div>
   </div>
 </div>
 <script>
@@ -451,19 +453,89 @@ tbody tr:last-child td{border-bottom:none;}
 var PW_HASH = '4bc8c96f305db1149b79a3a8d42d33101c952b63acd89753650fb4416fe63af4';
 var AUTH_TOKEN = '';
 
+var MAX_ATTEMPTS = 10;
+var LOCK_MINUTES = 9999 * 24 * 60; // 9999일
+
+function getLockState() {
+  try {
+    var s = localStorage.getItem('pw_lock');
+    return s ? JSON.parse(s) : {attempts: 0, lockedUntil: 0};
+  } catch(e) { return {attempts: 0, lockedUntil: 0}; }
+}
+function setLockState(state) {
+  try { localStorage.setItem('pw_lock', JSON.stringify(state)); } catch(e) {}
+}
+function clearLockState() {
+  try { localStorage.removeItem('pw_lock'); } catch(e) {}
+}
+
+function updateLockUI() {
+  var state = getLockState();
+  var now = Date.now();
+  var errEl = document.getElementById('pwError');
+  var inputEl = document.getElementById('pwInput');
+  var btnEl = document.querySelector('#lockScreen button');
+  var attEl = document.getElementById('pwAttempts');
+
+  if (state.lockedUntil > now) {
+    errEl.textContent = '🔒 접속이 차단되었습니다';
+    errEl.style.display = 'block';
+    inputEl.disabled = true;
+    btnEl.disabled = true;
+    btnEl.style.opacity = '0.4';
+    // 남은 시간 카운트다운
+    setTimeout(updateLockUI, 10000);
+  } else {
+    inputEl.disabled = false;
+    btnEl.disabled = false;
+    btnEl.style.opacity = '1';
+    var left = MAX_ATTEMPTS - state.attempts;
+    if (state.attempts > 0) {
+      attEl.textContent = '남은 시도 횟수: ' + left + '회';
+      attEl.style.display = 'block';
+    }
+  }
+}
+
 async function checkPw() {
+  var state = getLockState();
+  var now = Date.now();
+
+  // 잠금 상태 확인
+  if (state.lockedUntil > now) { updateLockUI(); return; }
+
   var pw = document.getElementById('pwInput').value;
+  if (!pw) return;
+
   var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(pw));
   var hash = Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+
   if (hash === PW_HASH) {
-    // 토큰 생성 (세션 동안 사용)
+    // 성공 — 잠금 상태 초기화
+    clearLockState();
     AUTH_TOKEN = btoa(pw + ':' + Date.now());
     try { sessionStorage.setItem('auth', AUTH_TOKEN); } catch(e){}
     document.getElementById('lockScreen').style.display = 'none';
   } else {
-    document.getElementById('pwError').style.display = 'block';
-    document.getElementById('pwInput').value = '';
-    document.getElementById('pwInput').focus();
+    // 실패
+    state.attempts += 1;
+    var errEl = document.getElementById('pwError');
+
+    if (state.attempts >= MAX_ATTEMPTS) {
+      state.lockedUntil = now + LOCK_MINUTES * 60 * 1000;
+      setLockState(state);
+      errEl.textContent = '🔒 ' + MAX_ATTEMPTS + '회 오류 — 영구 차단됩니다';
+      errEl.style.display = 'block';
+      document.getElementById('pwInput').value = '';
+      updateLockUI();
+    } else {
+      setLockState(state);
+      var left = MAX_ATTEMPTS - state.attempts;
+      errEl.textContent = '비밀번호가 틀렸습니다 (남은 횟수: ' + left + '회)';
+      errEl.style.display = 'block';
+      document.getElementById('pwInput').value = '';
+      document.getElementById('pwInput').focus();
+    }
   }
 }
 
@@ -471,8 +543,9 @@ async function checkPw() {
 (function(){
   try {
     var saved = sessionStorage.getItem('auth');
-    if (saved) { AUTH_TOKEN = saved; document.getElementById('lockScreen').style.display = 'none'; }
-    else { document.getElementById('pwInput').focus(); }
+    if (saved) { AUTH_TOKEN = saved; document.getElementById('lockScreen').style.display = 'none'; return; }
+    updateLockUI();
+    document.getElementById('pwInput').focus();
   } catch(e) {}
 })();
 </script>
