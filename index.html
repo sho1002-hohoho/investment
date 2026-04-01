@@ -1511,8 +1511,8 @@ function renderPerfChart(canvasId,account,range) {
     data:{labels:labels,datasets:[
       // 수익률 (좌축)
       {label:'수익률',data:rateData,yAxisID:'yRate',fill:true,backgroundColor:bgColor,borderColor:color,borderWidth:2,pointRadius:ptFn,pointHoverRadius:6,pointHoverBackgroundColor:color,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2,tension:0.4},
-      // 총평가금액 (우축)
-      {label:'자산',data:evalData,yAxisID:'yEval',fill:false,borderColor:'rgba(168,85,247,0.7)',borderWidth:1.5,borderDash:[4,3],pointRadius:ptFn,pointHoverRadius:5,pointHoverBackgroundColor:'#a855f7',tension:0.4}
+      // 총자산 (우축, 바 차트)
+      {label:'자산',data:evalData,yAxisID:'yEval',type:'bar',backgroundColor:'rgba(59,123,255,0.25)',borderColor:'rgba(59,123,255,0.6)',borderWidth:1,borderRadius:3,hoverBackgroundColor:'rgba(59,123,255,0.45)'}
     ]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
     plugins:{legend:{display:false},tooltip:{
@@ -2762,7 +2762,7 @@ function renderDashboardPerfChart(range) {
   history.forEach(function(h) {
     if (allAccounts.indexOf(h.account) < 0) return;
     if (!dateMap[h.date]) dateMap[h.date] = {totalVal:0, totalBuy:0};
-    dateMap[h.date].totalVal += (h.totalVal || 0);
+    dateMap[h.date].totalVal += (h.totalEval || 0);  // totalVal → totalEval 수정
     dateMap[h.date].totalBuy += (h.totalBuy || 0);
   });
 
