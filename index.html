@@ -496,7 +496,7 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="chart-header">
         <span class="chart-title">전체 자산 수익률 추이</span>
         <div class="time-tabs" id="dashboardTimeTabs">
-          <div class="time-tab" data-range="1w">1W</div><div class="time-tab" data-range="1m">1M</div><div class="time-tab active" data-range="3m">3M</div><div class="time-tab" data-range="6m">6M</div><div class="time-tab" data-range="1y">1Y</div>
+          <div class="time-tab active" data-range="1w">1W</div><div class="time-tab" data-range="1m">1M</div><div class="time-tab" data-range="3m">3M</div><div class="time-tab" data-range="6m">6M</div><div class="time-tab" data-range="1y">1Y</div>
         </div>
       </div>
       <div class="chart-wrap"><canvas id="perfChartDashboard"></canvas></div>
@@ -625,7 +625,7 @@ tbody tr:last-child td{border-bottom:none;}
             <option value="삼성계좌">삼성계좌</option><option value="ISA">ISA</option><option value="연금저축">연금저축</option><option value="해외계좌">해외계좌</option>
           </select>
           <div class="time-tabs" id="samsungTimeTabs">
-            <div class="time-tab" data-range="1w">1W</div><div class="time-tab" data-range="1m">1M</div><div class="time-tab active" data-range="3m">3M</div><div class="time-tab" data-range="6m">6M</div><div class="time-tab" data-range="1y">1Y</div>
+            <div class="time-tab active" data-range="1w">1W</div><div class="time-tab" data-range="1m">1M</div><div class="time-tab" data-range="3m">3M</div><div class="time-tab" data-range="6m">6M</div><div class="time-tab" data-range="1y">1Y</div>
           </div>
         </div>
       </div>
@@ -702,9 +702,9 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="chart-header">
         <span class="chart-title">수익률 추이</span>
         <div class="time-tabs" id="isaTimeTabs">
-          <div class="time-tab" onclick="renderAcctChart('ISA','1w',this)">1W</div>
+          <div class="time-tab active" onclick="renderAcctChart('ISA','1w',this)">1W</div>
           <div class="time-tab" onclick="renderAcctChart('ISA','1m',this)">1M</div>
-          <div class="time-tab active" onclick="renderAcctChart('ISA','3m',this)">3M</div>
+          <div class="time-tab" onclick="renderAcctChart('ISA','3m',this)">3M</div>
           <div class="time-tab" onclick="renderAcctChart('ISA','6m',this)">6M</div>
           <div class="time-tab" onclick="renderAcctChart('ISA','1y',this)">1Y</div>
         </div>
@@ -921,9 +921,9 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="chart-header">
         <span class="chart-title">수익률 추이</span>
         <div class="time-tabs" id="pensionTimeTabs">
-          <div class="time-tab" onclick="renderAcctChart('연금저축','1w',this)">1W</div>
+          <div class="time-tab active" onclick="renderAcctChart('연금저축','1w',this)">1W</div>
           <div class="time-tab" onclick="renderAcctChart('연금저축','1m',this)">1M</div>
-          <div class="time-tab active" onclick="renderAcctChart('연금저축','3m',this)">3M</div>
+          <div class="time-tab" onclick="renderAcctChart('연금저축','3m',this)">3M</div>
           <div class="time-tab" onclick="renderAcctChart('연금저축','6m',this)">6M</div>
           <div class="time-tab" onclick="renderAcctChart('연금저축','1y',this)">1Y</div>
         </div>
@@ -1014,9 +1014,9 @@ tbody tr:last-child td{border-bottom:none;}
       <div class="chart-header">
         <span class="chart-title">수익률 추이</span>
         <div class="time-tabs" id="overseasTimeTabs">
-          <div class="time-tab" onclick="renderAcctChart('해외계좌','1w',this)">1W</div>
+          <div class="time-tab active" onclick="renderAcctChart('해외계좌','1w',this)">1W</div>
           <div class="time-tab" onclick="renderAcctChart('해외계좌','1m',this)">1M</div>
-          <div class="time-tab active" onclick="renderAcctChart('해외계좌','3m',this)">3M</div>
+          <div class="time-tab" onclick="renderAcctChart('해외계좌','3m',this)">3M</div>
           <div class="time-tab" onclick="renderAcctChart('해외계좌','6m',this)">6M</div>
           <div class="time-tab" onclick="renderAcctChart('해외계좌','1y',this)">1Y</div>
         </div>
@@ -1492,7 +1492,7 @@ function renderPerfChart(canvasId,account,range) {
   var ctx=canvas.getContext('2d');
   var bgColor=color==='#22d87a'?'rgba(34,216,122,0.15)':color==='#ff4d6a'?'rgba(255,77,106,0.15)':'rgba(59,123,255,0.15)';
   if(_perfCharts[canvasId]) _perfCharts[canvasId].destroy();
-  _perfCharts[canvasId]=new Chart(ctx,{type:'line',data:{labels:labels,datasets:[{data:data,fill:true,backgroundColor:bgColor,borderColor:color,borderWidth:2,pointRadius:0,pointHoverRadius:6,pointHoverBackgroundColor:color,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2,tension:0.4}]},
+  _perfCharts[canvasId]=new Chart(ctx,{type:'line',data:{labels:labels,datasets:[{data:data,fill:true,backgroundColor:bgColor,borderColor:color,borderWidth:2,pointRadius:function(ctx){return ctx.chart.data.labels.length<=1?5:0;},pointHoverRadius:6,pointHoverBackgroundColor:color,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2,tension:0.4}]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
     plugins:{legend:{display:false},tooltip:{
       backgroundColor:'rgba(16,16,28,0.92)',
@@ -2718,7 +2718,7 @@ function renderPerfTable() {
   }).join('');
 }
 var _dashPerfChart = null;
-var _dashPerfRange = '3m';
+var _dashPerfRange = '1w';
 
 function renderDashboardPerfChart(range) {
   _dashPerfRange = range;
@@ -3012,7 +3012,7 @@ document.getElementById('samsungTimeTabs').addEventListener('click',function(e){
 });
 document.getElementById('chartAccountSamsung').addEventListener('change',function(){
   var activeTab=document.querySelector('#samsungTimeTabs .time-tab.active');
-  renderPerfChart('perfChartSamsung',this.value,activeTab?activeTab.dataset.range:'3m');
+  renderPerfChart('perfChartSamsung',this.value,activeTab?activeTab.dataset.range:'1w');
 });
 
 // ── 키보드 단축키 ──
@@ -3062,9 +3062,9 @@ loadStrategy();
 loadPensionTargets();
 loadIsaTargets();
 loadSavingsData();
-renderPerfChart('perfChartSamsung','삼성계좌','3m');
-renderDashboardPerfChart('3m');
-['Isa','Pension','Overseas'].forEach(function(cap){var accts={Isa:'ISA',Pension:'연금저축',Overseas:'해외계좌'};renderPerfChart('perfChart'+cap,accts[cap],'3m');});
+renderPerfChart('perfChartSamsung','삼성계좌','1w');
+renderDashboardPerfChart('1w');
+['Isa','Pension','Overseas'].forEach(function(cap){var accts={Isa:'ISA',Pension:'연금저축',Overseas:'해외계좌'};renderPerfChart('perfChart'+cap,accts[cap],'1w');});
 refreshAll();
 fetchLiveData(false);
 fetchExchangeRate();
