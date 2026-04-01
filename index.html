@@ -1460,8 +1460,7 @@ async function checkPw() {
 var SHEET_URL = 'https://script.google.com/macros/s/AKfycbwZD1EkBSlBDy5Mlr73loEDIwg7zYekUvIK3efeproPOqFJgzN3LcwIw0iC4skaLWcj/exec';
 function getApiUrl() {
   var token = (typeof AUTH_TOKEN !== 'undefined' ? AUTH_TOKEN : '') || (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('auth')||'' : '');
-  var url = SHEET_URL + '?token=' + encodeURIComponent(token);
-  return 'https://cors-anywhere.herokuapp.com/' + url;
+  return SHEET_URL + '?token=' + encodeURIComponent(token);
 }
 var liveData  = {stocks:[
   {name:'KODEX 미국우주항공', ticker:'XKRX:0167Z0', price:10325, changePct:3.14},
@@ -1962,7 +1961,7 @@ function renderPensionCompare() {
 
 // ── 환율 & 양도세 ──
 function fetchExchangeRate() {
-  fetch('https://cors-anywhere.herokuapp.com/https://query1.finance.yahoo.com/v8/finance/chart/USDKRW=X?interval=1d&range=2d').then(function(r){return r.json();}).then(function(data){
+  fetch('https://query1.finance.yahoo.com/v8/finance/chart/USDKRW=X?interval=1d&range=2d').then(function(r){return r.json();}).then(function(data){
     var result=data.chart.result[0],cur=result.meta.regularMarketPrice,prev=result.meta.previousClose||cur,chg=cur-prev,chgPct=chg/prev*100;
     window._fxRate = cur; // 전역 환율 저장
     var el=document.getElementById('fxRate');if(el)el.textContent=cur.toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:2});
