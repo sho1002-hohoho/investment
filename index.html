@@ -619,7 +619,10 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="card">
       <div class="chart-header">
-        <span class="chart-title">수익률 추이</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="chart-title">수익률 추이</span>
+          <span id="perfSummarySamsung" style="font-size:11.5px;font-weight:600"></span>
+        </div>
         <div style="display:flex;align-items:center;gap:8px">
           <select id="chartAccountSamsung" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:11.5px;outline:none;cursor:pointer">
             <option value="삼성계좌">삼성계좌</option><option value="ISA">ISA</option><option value="연금저축">연금저축</option><option value="해외계좌">해외계좌</option>
@@ -700,7 +703,10 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="card">
       <div class="chart-header">
-        <span class="chart-title">수익률 추이</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="chart-title">수익률 추이</span>
+          <span id="perfSummaryIsa" style="font-size:11.5px;font-weight:600"></span>
+        </div>
         <div class="time-tabs" id="isaTimeTabs">
           <div class="time-tab active" onclick="renderAcctChart('ISA','1w',this)">1W</div>
           <div class="time-tab" onclick="renderAcctChart('ISA','1m',this)">1M</div>
@@ -919,7 +925,10 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="card">
       <div class="chart-header">
-        <span class="chart-title">수익률 추이</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="chart-title">수익률 추이</span>
+          <span id="perfSummaryPension" style="font-size:11.5px;font-weight:600"></span>
+        </div>
         <div class="time-tabs" id="pensionTimeTabs">
           <div class="time-tab active" onclick="renderAcctChart('연금저축','1w',this)">1W</div>
           <div class="time-tab" onclick="renderAcctChart('연금저축','1m',this)">1M</div>
@@ -1012,7 +1021,10 @@ tbody tr:last-child td{border-bottom:none;}
     </div>
     <div class="card">
       <div class="chart-header">
-        <span class="chart-title">수익률 추이</span>
+        <div style="display:flex;align-items:center;gap:10px">
+          <span class="chart-title">수익률 추이</span>
+          <span id="perfSummaryOverseas" style="font-size:11.5px;font-weight:600"></span>
+        </div>
         <div class="time-tabs" id="overseasTimeTabs">
           <div class="time-tab active" onclick="renderAcctChart('해외계좌','1w',this)">1W</div>
           <div class="time-tab" onclick="renderAcctChart('해외계좌','1m',this)">1M</div>
@@ -1419,7 +1431,7 @@ function updateStockMeta(name,key,val) { if(!_stockMeta[name]) _stockMeta[name]=
 function loadStockMeta() { try{var d=localStorage.getItem('stockMeta');if(d)_stockMeta=JSON.parse(d);}catch(e){} }
 var sectionOpts = ['','성장주','배당주','가치주','ETF','리츠'];
 var assetOpts   = ['','국내주식','해외주식','채권','안전자산'];
-var statusOpts  = ['','국내주식','해외주식','채권','배당주','리츠'];
+var statusOpts  = ['','국내주식','해외주식','채권','배당주','리츠','금'];
 var themeOpts   = ['','반도체','은행','식품','바이오','자동차','에너지','IT','유통','화학','건설','통신','조선','방산','채권','로봇','우주','양자컴','지수','리츠','금','AI'];
 function makeSelect(name,key,opts,cur) {
   return '<select class="meta-select" onchange="updateStockMeta(\''+name+'\',\''+key+'\',this.value)">'
@@ -1502,8 +1514,24 @@ function renderPerfChart(canvasId,account,range) {
   } else {
     labels=['데이터 없음']; rateData=[0]; evalData=[0]; color='#3b7bff';
   }
+  // 기간 수익/수익률 계산 → 헤더에 표시
+  var summaryMap = {'perfChartSamsung':'perfSummarySamsung','perfChartIsa':'perfSummaryIsa','perfChartPension':'perfSummaryPension','perfChartOverseas':'perfSummaryOverseas'};
+  var summaryEl = document.getElementById(summaryMap[canvasId]);
+  if (summaryEl) {
+    if (history.length >= 1) {
+      var lastEval = history[history.length-1].totalEval || 0;
+      var lastBuy  = history[history.length-1].totalBuy  || 0;
+      var periodProfit = lastEval - lastBuy;
+      var periodRate   = lastBuy > 0 ? (periodProfit / lastBuy * 100) : 0;
+      var sign = periodProfit >= 0 ? '+' : '';
+      summaryEl.textContent = sign + Math.round(periodProfit).toLocaleString('ko-KR') + '원  (' + sign + periodRate.toFixed(2) + '%)';
+      summaryEl.style.color = periodProfit >= 0 ? 'var(--green)' : 'var(--red)';
+    } else {
+      summaryEl.textContent = '';
+    }
+  }
   var ctx=canvas.getContext('2d');
-  var bgColor=color==='#22d87a'?'rgba(34,216,122,0.10)':color==='#ff4d6a'?'rgba(255,77,106,0.10)':'rgba(59,123,255,0.10)';
+  var bgColor='transparent';
   var ptFn=function(c){return c.chart.data.labels.length<=1?5:0;};
   if(_perfCharts[canvasId]) _perfCharts[canvasId].destroy();
   _perfCharts[canvasId]=new Chart(ctx,{
@@ -1512,7 +1540,7 @@ function renderPerfChart(canvasId,account,range) {
       // 수익률 (좌축)
       {label:'수익률',data:rateData,yAxisID:'yRate',fill:true,backgroundColor:bgColor,borderColor:color,borderWidth:2,pointRadius:ptFn,pointHoverRadius:6,pointHoverBackgroundColor:color,pointHoverBorderColor:'#fff',pointHoverBorderWidth:2,tension:0.4},
       // 총자산 (우축, 바 차트)
-      {label:'자산',data:evalData,yAxisID:'yEval',type:'bar',backgroundColor:'rgba(59,123,255,0.25)',borderColor:'rgba(59,123,255,0.6)',borderWidth:1,borderRadius:3,hoverBackgroundColor:'rgba(59,123,255,0.45)'}
+      {label:'자산',data:evalData,yAxisID:'yEval',type:'bar',backgroundColor:'rgba(59,123,255,0.85)',borderColor:'#3b7bff',borderWidth:1,borderRadius:3,hoverBackgroundColor:'#3b7bff'}
     ]},
     options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
     plugins:{legend:{display:false},tooltip:{
@@ -2652,14 +2680,26 @@ function renderPerfTable() {
     if (acct === '연금저축') return '채권';
     return '안전자산';
   }
+  function classifyEntry(e) {
+    // 종목 status 메타가 있으면 우선 사용
+    var meta = getStockMeta(e.stock);
+    var status = meta && meta.status;
+    if (status === '배당주') return '배당주';
+    if (status === '리츠')   return '리츠';
+    if (status === '금')     return '금';
+    if (status === '채권')   return '채권';
+    if (status === '국내주식') return '국내주식';
+    if (status === '해외주식') return '해외주식';
+    return classifyAcct(e.account);
+  }
 
   // 기간별 수익 계산
   function calcPeriod(startYear, endYear) {
-    var result = {'국내주식':{profit:0,buy:0},'해외주식':{profit:0,buy:0},'채권':{profit:0,buy:0},'안전자산':{profit:0,buy:0},'전체':{profit:0,buy:0}};
+    var result = {'국내주식':{profit:0,buy:0},'해외주식':{profit:0,buy:0},'채권':{profit:0,buy:0},'배당주':{profit:0,buy:0},'리츠':{profit:0,buy:0},'금':{profit:0,buy:0},'안전자산':{profit:0,buy:0},'전체':{profit:0,buy:0}};
     entries.forEach(function(e) {
       var y = parseInt((e.date||'').slice(0,4));
       if (y < startYear || y > endYear) return;
-      var cat = classifyAcct(e.account);
+      var cat = classifyEntry(e);
       if (e.type === 'buy') {
         result[cat].buy += e.tb || 0;
         result['전체'].buy += e.tb || 0;
@@ -2715,10 +2755,13 @@ function renderPerfTable() {
     {key:'국내주식', label:'국내주식', bold:false},
     {key:'해외주식', label:'해외주식', bold:false},
     {key:'채권', label:'채권', bold:false},
+    {key:'배당주', label:'배당주', bold:false},
+    {key:'리츠', label:'리츠', bold:false},
+    {key:'금', label:'금', bold:false},
     {key:'안전자산', label:'안전자산', bold:false},
   ];
 
-  var acColors2 = {'국내주식':'#3b7bff','해외주식':'#a855f7','채권':'#22d87a','안전자산':'#f59e0b','전체':'var(--text)'};
+  var acColors2 = {'국내주식':'#3b7bff','해외주식':'#a855f7','채권':'#22d87a','배당주':'#06b6d4','리츠':'#ec4899','금':'#f59e0b','안전자산':'#84cc16','전체':'var(--text)'};
 
   var tbody = document.getElementById('perfTableBody');
   if (!tbody) return;
@@ -2811,15 +2854,33 @@ function renderDashboardPerfChart(range) {
     }
   }
 
-  var bgColor = color==='#22d87a'?'rgba(34,216,122,0.15)':color==='#ff4d6a'?'rgba(255,77,106,0.15)':'rgba(59,123,255,0.15)';
+  // 총 자산 데이터 (날짜별 전 계좌 합산)
+  var evalData = dates.map(function(d){ return dateMap[d].totalVal || 0; });
+
   if (_dashPerfChart) _dashPerfChart.destroy();
   _dashPerfChart = new Chart(canvas, {
     type:'line',
-    data:{labels:labels,datasets:[{data:data,fill:true,backgroundColor:bgColor,borderColor:color,borderWidth:2,pointRadius:0,pointHoverRadius:5,tension:0.4}]},
-    options:{responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){return (c.parsed.y>=0?'+':'')+c.parsed.y.toFixed(2)+'%';}}}},
-      scales:{x:{grid:{display:false},ticks:{color:'#6b6b80',font:{size:10},maxTicksLimit:8,maxRotation:0},border:{display:false}},
-        y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b6b80',font:{size:10},callback:function(v){return v.toFixed(1)+'%';}},border:{display:false}}}}
+    data:{labels:labels,datasets:[
+      {label:'수익률',data:data,yAxisID:'yRate',fill:false,backgroundColor:'transparent',borderColor:color,borderWidth:2,pointRadius:0,pointHoverRadius:5,tension:0.4},
+      {label:'자산',data:evalData,yAxisID:'yEval',type:'bar',backgroundColor:'rgba(59,123,255,0.85)',borderColor:'#3b7bff',borderWidth:1,borderRadius:3,hoverBackgroundColor:'#3b7bff'}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},
+      plugins:{legend:{display:false},tooltip:{
+        backgroundColor:'rgba(16,16,28,0.92)',borderColor:'rgba(255,255,255,0.08)',borderWidth:1,
+        titleColor:'#6b6b80',bodyColor:'#f0f0f5',padding:10,displayColors:true,
+        callbacks:{
+          title:function(items){return items[0].label;},
+          label:function(c){
+            if(c.dataset.label==='수익률'){var v=c.parsed.y;return '수익률: '+(v>=0?'+':'')+v.toFixed(2)+'%';}
+            return '총 자산: ₩'+Math.round(c.parsed.y).toLocaleString('ko-KR');
+          }
+        }
+      }},
+      scales:{
+        x:{grid:{display:false},ticks:{color:'#6b6b80',font:{size:10},maxTicksLimit:8,maxRotation:0},border:{display:false}},
+        yRate:{position:'left',grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#6b6b80',font:{size:10},callback:function(v){return v.toFixed(1)+'%';},maxTicksLimit:5},border:{display:false}},
+        yEval:{position:'right',grid:{display:false},ticks:{color:'rgba(59,123,255,0.7)',font:{size:10},callback:function(v){if(v>=100000000)return (v/100000000).toFixed(1)+'억';if(v>=10000)return Math.round(v/10000)+'만';return v;},maxTicksLimit:4},border:{display:false}}
+      }}
   });
 }
 
