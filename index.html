@@ -1373,6 +1373,13 @@ function fetchLiveData(manual) {
     ['apiStatus','apiStatus2'].forEach(function(id){ var el=document.getElementById(id); if(el){el.className='api-status ok';el.textContent='● 실시간 연동';} });
     updateStockList();
     refreshAll();
+    // history 데이터 로드 후 수익률 차트 재렌더
+    renderPerfChart('perfChartSamsung','삼성계좌','1w');
+    renderDashboardPerfChart('1w');
+    ['Isa','Pension','Overseas'].forEach(function(cap){
+      var accts={Isa:'ISA',Pension:'연금저축',Overseas:'해외계좌'};
+      renderPerfChart('perfChart'+cap,accts[cap],'1w');
+    });
     if (manual) alert('갱신 완료!');
   }).catch(function(){
     ['apiStatus','apiStatus2'].forEach(function(id){ var el=document.getElementById(id); if(el){el.className='api-status err';el.textContent='● 연결 실패';} });
