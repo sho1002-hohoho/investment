@@ -793,8 +793,23 @@ async function checkPw() {
             <button onclick="renderSamsungMiniChart('1y')" id="mcBtn_samsung_1y" style="padding:2px 7px;font-size:11px;border-radius:4px;border:none;cursor:pointer;background:var(--surface2);color:var(--muted)">1년</button>
           </div>
         </div>
-        <div id="mcSummary_samsung" style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;margin-bottom:6px;color:var(--muted)">-</div>
-        <div style="height:100px;position:relative"><canvas id="miniChartSamsung"></canvas></div>
+
+        <div id="mcDisplay_samsung" style="margin-top:8px">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+              <span style="font-size:11px;color:var(--muted)" id="mcPeriodLabel_samsung">기간</span>
+              <span style="font-size:11px;color:var(--muted)" id="mcPeriodDate_samsung"></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:11px;color:var(--muted)">수익률</span>
+              <span style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace" id="mcRate_samsung">-</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:11px;color:var(--muted)">수익금</span>
+              <span style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace" id="mcProfit_samsung">-</span>
+            </div>
+          </div>
+        </div>
       </div>
       <!-- 기간별 실현손익 카드 -->
       <div class="card" style="flex:1;min-width:200px">
@@ -897,8 +912,23 @@ async function checkPw() {
             <button onclick="renderMiniPerfChart('isa','1y')" id="mcBtn_isa_1y" style="padding:2px 7px;font-size:11px;border-radius:4px;border:none;cursor:pointer;background:var(--surface2);color:var(--muted)">1년</button>
           </div>
         </div>
-        <div id="mcSummary_isa" style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;margin-bottom:6px;color:var(--muted)">-</div>
-        <div style="height:100px;position:relative"><canvas id="miniChart_isa"></canvas></div>
+
+        <div id="mcDisplay_isa" style="margin-top:8px">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+              <span style="font-size:11px;color:var(--muted)" id="mcPeriodLabel_isa">기간</span>
+              <span style="font-size:11px;color:var(--muted)" id="mcPeriodDate_isa"></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:11px;color:var(--muted)">수익률</span>
+              <span style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace" id="mcRate_isa">-</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:11px;color:var(--muted)">수익금</span>
+              <span style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace" id="mcProfit_isa">-</span>
+            </div>
+          </div>
+        </div>
       </div>
       <div class="card" style="flex:1;min-width:200px">
         <div class="card-header" style="margin-bottom:10px">
@@ -1146,8 +1176,23 @@ async function checkPw() {
             <button onclick="renderMiniPerfChart('pension','1y')" id="mcBtn_pension_1y" style="padding:2px 7px;font-size:11px;border-radius:4px;border:none;cursor:pointer;background:var(--surface2);color:var(--muted)">1년</button>
           </div>
         </div>
-        <div id="mcSummary_pension" style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;margin-bottom:6px;color:var(--muted)">-</div>
-        <div style="height:100px;position:relative"><canvas id="miniChart_pension"></canvas></div>
+
+        <div id="mcDisplay_pension" style="margin-top:8px">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+              <span style="font-size:11px;color:var(--muted)" id="mcPeriodLabel_pension">기간</span>
+              <span style="font-size:11px;color:var(--muted)" id="mcPeriodDate_pension"></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:11px;color:var(--muted)">수익률</span>
+              <span style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace" id="mcRate_pension">-</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:11px;color:var(--muted)">수익금</span>
+              <span style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace" id="mcProfit_pension">-</span>
+            </div>
+          </div>
+        </div>
       </div>
       <!-- 연금저축: 목표vs실제 + 수익률추이 -->
       <div class="card portfolio-card" style="flex:2">
@@ -1251,8 +1296,23 @@ async function checkPw() {
             <button onclick="renderMiniPerfChart('overseas','1y')" id="mcBtn_overseas_1y" style="padding:2px 7px;font-size:11px;border-radius:4px;border:none;cursor:pointer;background:var(--surface2);color:var(--muted)">1년</button>
           </div>
         </div>
-        <div id="mcSummary_overseas" style="font-size:13px;font-weight:600;font-family:'DM Mono',monospace;margin-bottom:6px;color:var(--muted)">-</div>
-        <div style="height:100px;position:relative"><canvas id="miniChart_overseas"></canvas></div>
+
+        <div id="mcDisplay_overseas" style="margin-top:8px">
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border)">
+              <span style="font-size:11px;color:var(--muted)" id="mcPeriodLabel_overseas">기간</span>
+              <span style="font-size:11px;color:var(--muted)" id="mcPeriodDate_overseas"></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:11px;color:var(--muted)">수익률</span>
+              <span style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace" id="mcRate_overseas">-</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline">
+              <span style="font-size:11px;color:var(--muted)">수익금</span>
+              <span style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace" id="mcProfit_overseas">-</span>
+            </div>
+          </div>
+        </div>
       </div>
       <!-- 환율 카드 -->
       <div class="card" id="fxRateCard" style="flex:1;min-width:0">
@@ -2726,7 +2786,7 @@ function renderRealizedProfit(acctKey, range) {
 
 
 
-// ── 미니 수익률 차트 (공통) ──
+// ── 기간별 수익률 (숫자 표시) ──
 var _acctKeyMap = {samsung:'삼성계좌', isa:'ISA', pension:'연금저축', overseas:'해외계좌'};
 
 function renderSamsungMiniChart(range) { renderMiniPerfChart('samsung', range); }
@@ -2735,6 +2795,7 @@ function renderMiniPerfChart(key, range) {
   var acct = _acctKeyMap[key];
   if (!acct) return;
 
+  // 버튼 스타일
   ['all','1m','2m','1y'].forEach(function(r) {
     var btn = document.getElementById('mcBtn_'+key+'_'+r);
     if (!btn) return;
@@ -2742,67 +2803,55 @@ function renderMiniPerfChart(key, range) {
     btn.style.color = r===range ? '#fff' : 'var(--muted)';
   });
 
-  var canvasId = key==='samsung' ? 'miniChartSamsung' : 'miniChart_'+key;
-  var canvas = document.getElementById(canvasId);
-  var summaryEl = document.getElementById('mcSummary_'+key);
-  if (!canvas) return;
+  var rateEl   = document.getElementById('mcRate_'+key);
+  var profitEl = document.getElementById('mcProfit_'+key);
+  var labelEl  = document.getElementById('mcPeriodLabel_'+key);
+  var dateEl   = document.getElementById('mcPeriodDate_'+key);
 
   var history = (liveData.history||[]).filter(function(h){ return h.account===acct; });
-  if (range !== 'all') {
-    var days = {'1m':30,'2m':60,'1y':365}[range]||30;
+
+  // 기간 필터 - 오늘 기준
+  var periodLabel = {all:'전체', '1m':'1달', '2m':'2달', '1y':'1년'}[range];
+  if (labelEl) labelEl.textContent = periodLabel;
+
+  var filtered = history.slice();
+  if (range !== 'all' && history.length) {
+    var days = {'1m':30,'2m':60,'1y':365}[range];
     var cutoff = new Date(); cutoff.setDate(cutoff.getDate()-days);
-    history = history.filter(function(h){ return new Date(h.date) >= cutoff; });
+    filtered = history.filter(function(h){ return new Date(h.date) >= cutoff; });
   }
 
-  var dpr = window.devicePixelRatio || 1;
-  var W = canvas.offsetWidth || 200;
-  var H = 100;
-  canvas.width = W*dpr; canvas.height = H*dpr;
-  canvas.style.width = W+'px'; canvas.style.height = H+'px';
-  var ctx = canvas.getContext('2d');
-  ctx.scale(dpr, dpr);
-  ctx.clearRect(0,0,W,H);
-
-  if (!history.length) {
-    ctx.fillStyle = '#8892a4';
-    ctx.font = '11px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('데이터 없음', W/2, H/2);
-    if (summaryEl) { summaryEl.textContent = '-'; summaryEl.style.color = 'var(--muted)'; }
+  if (!filtered.length) {
+    if (rateEl)   { rateEl.textContent = '-'; rateEl.style.color = 'var(--muted)'; }
+    if (profitEl) { profitEl.textContent = '-'; profitEl.style.color = 'var(--muted)'; }
+    if (dateEl)   dateEl.textContent = '';
     return;
   }
 
-  var rates = history.map(function(h){ return Number(h.profitRate)||0; });
-  var minR = Math.min.apply(null,rates), maxR = Math.max.apply(null,rates);
-  var rangeR = maxR-minR||1;
-  var pad = {l:6,r:6,t:8,b:8};
-  var cW = W-pad.l-pad.r, cH = H-pad.t-pad.b;
-  var lastRate = rates[rates.length-1];
-  var color = lastRate>=0?'#22d87a':'#ff4d6a';
-  var colorAlpha = lastRate>=0?'rgba(34,216,122,0.2)':'rgba(255,77,106,0.2)';
+  // 기간 시작/끝 데이터
+  var first = filtered[0];
+  var last  = filtered[filtered.length-1];
 
-  ctx.beginPath();
-  rates.forEach(function(r,i){
-    var x=pad.l+(i/(rates.length-1||1))*cW;
-    var y=pad.t+(1-(r-minR)/rangeR)*cH;
-    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
-  });
-  ctx.strokeStyle=color; ctx.lineWidth=2; ctx.stroke();
+  // 수익률: 마지막 날 기준
+  var lastRate   = Number(last.profitRate) || 0;
+  // 기간 수익금: 마지막 평가 - 첫 날 평가
+  var lastEval   = Number(last.totalEval)  || 0;
+  var firstEval  = Number(first.totalEval) || 0;
+  var lastBuy    = Number(last.totalBuy)   || 0;
+  var periodProfit = lastEval - lastBuy; // 현재 기준 미실현손익
 
-  var grad=ctx.createLinearGradient(0,pad.t,0,H);
-  grad.addColorStop(0,colorAlpha); grad.addColorStop(1,'rgba(0,0,0,0)');
-  ctx.beginPath();
-  rates.forEach(function(r,i){
-    var x=pad.l+(i/(rates.length-1||1))*cW;
-    var y=pad.t+(1-(r-minR)/rangeR)*cH;
-    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
-  });
-  ctx.lineTo(pad.l+cW,pad.t+cH); ctx.lineTo(pad.l,pad.t+cH); ctx.closePath();
-  ctx.fillStyle=grad; ctx.fill();
+  // 기간 표시
+  if (dateEl) dateEl.textContent = first.date + ' ~';
 
-  if (summaryEl) {
-    summaryEl.textContent=(lastRate>=0?'+':'')+lastRate.toFixed(2)+'%';
-    summaryEl.style.color=lastRate>=0?'var(--green)':'var(--red)';
+  var color = lastRate >= 0 ? 'var(--green)' : 'var(--red)';
+  if (rateEl) {
+    rateEl.textContent = (lastRate>=0?'+':'')+lastRate.toFixed(2)+'%';
+    rateEl.style.color = color;
+  }
+  if (profitEl) {
+    var profitStr = (periodProfit>=0?'+':'') + Math.round(periodProfit).toLocaleString('ko-KR') + '원';
+    profitEl.textContent = profitStr;
+    profitEl.style.color = periodProfit>=0?'var(--green)':'var(--red)';
   }
 }
 
