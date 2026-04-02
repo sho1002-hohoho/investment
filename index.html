@@ -2327,11 +2327,11 @@ function renderDivBarChartMultiYear() {
       ctx.textAlign = 'center';
       if (range === 1) {
         // 월 레이블
-        ctx.font = '10px sans-serif';
-        ctx.fillText(lb.month+'월', x+barW/2, H - (v>0 ? 20 : 8));
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillText(lb.month+'월', x+barW/2, H - (v>0 ? 22 : 8));
         // 금액 (원 단위)
         if (v > 0) {
-          ctx.font = '9px sans-serif';
+          ctx.font = 'bold 11px sans-serif';
           ctx.fillStyle = textColor;
           var amtLabel = v >= 10000000 ? Math.round(v/10000)+'만' : v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 10000 ? Math.round(v/10000)+'만' : Math.round(v)+'원';
           ctx.fillText(amtLabel, x+barW/2, H - 7);
