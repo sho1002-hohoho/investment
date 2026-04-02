@@ -2123,7 +2123,8 @@ function renderDividendPage() {
   var colMap = {}; // month(1~12) → col index in rows[i]
   var curYear = 0;
   for (var c = 1; c < cal.row1.length; c++) {
-    if (cal.row1[c] && !isNaN(Number(cal.row1[c]))) curYear = Number(cal.row1[c]);
+    var yr = Number(cal.row1[c]);
+    if (cal.row1[c] !== '' && !isNaN(yr) && yr > 2000) curYear = yr;
     var m = parseInt(String(cal.row2[c]).replace('월',''));
     if (curYear === year && m >= 1 && m <= 12) colMap[m] = c;
   }
@@ -2131,7 +2132,13 @@ function renderDividendPage() {
   // 종목별 월별 배당금(주당) × 보유수량 계산
   var stockRows = []; // {name, isUSD, vals:[m1..m12], total}
   cal.rows.forEach(function(row) {
-    var name = String(row[0]||'').trim();
+    // col 0이 0(숫자)으로 오는 경우 → 실제 종목명은 없는 행이므로 스킵
+    // col 0이 문자열인 경우만 처리
+    var rawName = row[0];
+    var name = '';
+    if (rawName !== 0 && rawName !== '' && rawName != null && rawName !== false) {
+      name = String(rawName).trim();
+    }
     if (!name) return;
     var qty = holdings[name] || 0;
     var stock = (liveData.stocks||[]).find(function(s){return s.name===name;});
@@ -2232,7 +2239,8 @@ function renderDivBarChartMultiYear() {
   var colMap = {};
   var curY = 0;
   for (var c = 1; c < cal.row1.length; c++) {
-    if (cal.row1[c] && !isNaN(Number(cal.row1[c]))) curY = Number(cal.row1[c]);
+    var yr2 = Number(cal.row1[c]);
+    if (cal.row1[c] !== '' && !isNaN(yr2) && yr2 > 2000) curY = yr2;
     var m2 = parseInt(String(cal.row2[c]).replace('월',''));
     if (curY >= startYear && curY <= endYear && m2 >= 1 && m2 <= 12) {
       colMap[curY + '-' + m2] = c;
