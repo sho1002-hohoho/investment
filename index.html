@@ -300,7 +300,7 @@ body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;fon
 .user-name{font-size:12px;font-weight:500;}.user-email{font-size:10px;color:var(--muted);}
 .content{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px;}
 .content::-webkit-scrollbar{width:4px;}.content::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:2px;}
-.row{display:flex;gap:16px;flex-wrap:wrap;}
+.row{display:flex;gap:16px;flex-wrap:nowrap;}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:18px 20px;}
 .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
 .card-title{font-size:12px;color:var(--muted);font-weight:500;}
@@ -395,12 +395,17 @@ tbody tr:last-child td{border-bottom:none;}
   /* 사이드바 숨기기 */
   .sidebar { display: none; }
 
-  /* row 1열 배열 */
-  .row { flex-direction: column; gap: 12px; }
-  .row > .card,
-  .row > div { width: 100% !important; min-width: 0 !important; flex: 1 1 100% !important; box-sizing: border-box; }
-  .holding-card { flex: 1 1 100% !important; }
-  .portfolio-card { flex: 1 1 100% !important; }
+  /* ── 모바일: 모든 row를 세로 1열로 ── */
+  .row { flex-direction: column !important; gap: 12px !important; }
+  .row > * { width: 100% !important; min-width: 0 !important; max-width: 100% !important; flex: none !important; box-sizing: border-box !important; }
+  /* portfolio-card 내부도 세로로 */
+  .portfolio-card > div { flex-direction: column !important; }
+  .portfolio-card div[style*="flex:0 0"] { width: 100% !important; flex: none !important; min-width: 0 !important; }
+  .portfolio-card div[style*="height:200px"] { height: 180px !important; width: 100% !important; }
+  /* ISA/연금 비교차트 */
+  #isaCompareChart, #pensionCompareChart { height: 160px !important; }
+  /* stock-card는 가로 스크롤 유지 */
+  .stock-card { flex: 0 0 110px !important; }
 
   /* 햄버거 버튼 표시 */
   #mobileMenuBtn { display: flex !important; }
@@ -437,6 +442,10 @@ tbody tr:last-child td{border-bottom:none;}
   #mobileNav { display: none !important; }
   #mobileNavOverlay { display: none !important; }
   #mobileMenuBtn { display: none !important; }
+  /* 데스크탑 row 가로 배열 강제 */
+  .row { flex-direction: row !important; flex-wrap: nowrap !important; }
+  .holding-card { flex: 0 0 260px !important; }
+  .portfolio-card { flex: 1 !important; }
 }
 </style>
 </head>
