@@ -567,6 +567,7 @@ async function checkPw() {
     <div class="nav-item" onclick="mobileGoTo('pension')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>연금저축</div>
     <div class="nav-item" onclick="mobileGoTo('overseas')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>해외주식</div>
     <div class="nav-item" onclick="mobileGoTo('savings')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>적금 &amp; CMA</div>
+    <div class="nav-item" onclick="mobileGoTo('dividend')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>배당내역</div>
     <div class="nav-item" onclick="mobileGoTo('journal')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>거래일지</div>
     <div class="nav-item" onclick="mobileGoTo('stocks')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>종목 현황</div>
   </div>
@@ -582,6 +583,7 @@ async function checkPw() {
   <div class="nav-item" data-page="pension" onclick="goTo('pension')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>연금저축</div>
   <div class="nav-item" data-page="overseas" onclick="goTo('overseas')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>해외주식</div>
   <div class="nav-item" data-page="savings" onclick="goTo('savings')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>적금 &amp; CMA</div>
+  <div class="nav-item" data-page="dividend" onclick="goTo('dividend')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>배당내역</div>
   <div class="nav-item" data-page="journal" onclick="goTo('journal')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>거래일지</div>
   <div class="nav-item" data-page="stocks" onclick="goTo('stocks')"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>종목 현황</div>
 </aside>
@@ -1455,6 +1457,69 @@ async function checkPw() {
     <div class="modal-footer"><button class="btn-cancel" onclick="closeModal()">취소</button><button class="btn-save" onclick="saveEntry()">저장</button></div>
   </div>
 </div>
+
+<div class="page" id="page-dividend">
+  <header class="topbar">
+    <div class="topbar-right">
+      <div id="apiStatus3" class="api-status loading">● 연결 중...</div>
+      <button class="csv-btn" onclick="fetchLiveData(true)"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>새로고침</button>
+    </div>
+  </header>
+  <div class="journal-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <h2 style="font-size:20px;font-weight:600;letter-spacing:-0.5px;margin:0">배당내역</h2>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button id="divYearPrev" onclick="divChangeYear(-1)" style="background:var(--surface2);border:none;color:var(--text);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px">‹</button>
+        <span id="divYearLabel" style="font-size:15px;font-weight:600;min-width:44px;text-align:center">2026</span>
+        <button id="divYearNext" onclick="divChangeYear(1)" style="background:var(--surface2);border:none;color:var(--text);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px">›</button>
+      </div>
+    </div>
+
+    <!-- 상단 요약 카드 -->
+    <div class="summary-row" style="margin-bottom:20px">
+      <div class="summary-card">
+        <div class="summary-label">연간 배당 총액</div>
+        <div class="summary-value" id="divTotalYear" style="font-size:18px">-</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">월 평균 배당</div>
+        <div class="summary-value" id="divMonthAvg" style="font-size:18px">-</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">배당 수익률</div>
+        <div class="summary-value" id="divYieldRate" style="font-size:18px">-</div>
+        <div class="summary-sub" style="font-size:11px;color:var(--muted);margin-top:2px">전체 자산 대비</div>
+      </div>
+    </div>
+
+    <!-- 월별 바 차트 카드 -->
+    <div class="card" style="margin-bottom:20px;padding:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div class="card-heading">월별 배당 현황</div>
+        <div style="display:flex;gap:4px;align-items:center">
+          <div id="divSelectedMonthInfo" style="font-size:13px;color:var(--muted);margin-right:6px"></div>
+          <div style="display:flex;gap:3px">
+            <button onclick="setDivChartRange(1)" id="divRange1" class="chart-range-btn active-range" style="padding:3px 8px;font-size:11px;border-radius:4px;border:none;cursor:pointer;background:var(--accent);color:#fff">1Y</button>
+            <button onclick="setDivChartRange(3)" id="divRange3" class="chart-range-btn" style="padding:3px 8px;font-size:11px;border-radius:4px;border:none;cursor:pointer;background:var(--surface2);color:var(--muted)">3Y</button>
+            <button onclick="setDivChartRange(5)" id="divRange5" class="chart-range-btn" style="padding:3px 8px;font-size:11px;border-radius:4px;border:none;cursor:pointer;background:var(--surface2);color:var(--muted)">5Y</button>
+            <button onclick="setDivChartRange(10)" id="divRange10" class="chart-range-btn" style="padding:3px 8px;font-size:11px;border-radius:4px;border:none;cursor:pointer;background:var(--surface2);color:var(--muted)">10Y</button>
+          </div>
+        </div>
+      </div>
+      <canvas id="divBarChart" style="width:100%;height:180px"></canvas>
+    </div>
+
+    <!-- 배당 테이블 카드 -->
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="overflow-x:auto">
+        <table id="divTable" style="width:100%;border-collapse:collapse;font-size:13px;min-width:700px">
+          <thead id="divTableHead"></thead>
+          <tbody id="divTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
 <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
 // ── 설정 ──
 var SHEET_URL = 'https://script.google.com/macros/s/AKfycbwZD1EkBSlBDy5Mlr73loEDIwg7zYekUvIK3efeproPOqFJgzN3LcwIw0iC4skaLWcj/exec';
@@ -1521,9 +1586,11 @@ function fetchLiveData(manual) {
     if (data.tradeEntries && data.tradeEntries.length) {
       window._entries = data.tradeEntries;
     }
-    ['apiStatus','apiStatus2'].forEach(function(id){ var el=document.getElementById(id); if(el){el.className='api-status ok';el.textContent='● 실시간 연동';} });
+    ['apiStatus','apiStatus2','apiStatus3'].forEach(function(id){ var el=document.getElementById(id); if(el){el.className='api-status ok';el.textContent='● 실시간 연동';} });
+    if (data.dividendCalendar) window._divCalendar = data.dividendCalendar;
     updateStockList();
     refreshAll();
+    renderDividendPage();
     // history 데이터 로드 후 수익률 차트 재렌더
     renderPerfChart('perfChartSamsung','삼성계좌','1w');
     renderDashboardPerfChart('1w');
@@ -1983,6 +2050,288 @@ function fetchExchangeRate() {
     });
   });
 }
+
+// ════════════════════════════════════════════
+// 배당내역 페이지
+// ════════════════════════════════════════════
+var _divYear = 2026;
+var _divChartRange = 1; // 차트 표시 기간 (년)
+
+function setDivChartRange(years) {
+  _divChartRange = years;
+  // 버튼 스타일 업데이트
+  [1,3,5,10].forEach(function(y) {
+    var btn = document.getElementById('divRange'+y);
+    if (!btn) return;
+    if (y === years) {
+      btn.style.background = 'var(--accent)';
+      btn.style.color = '#fff';
+    } else {
+      btn.style.background = 'var(--surface2)';
+      btn.style.color = 'var(--muted)';
+    }
+  });
+  renderDivBarChartMultiYear();
+}
+
+function divChangeYear(d) {
+  _divYear += d;
+  document.getElementById('divYearLabel').textContent = _divYear;
+  renderDividendPage();
+}
+
+function getDivHoldings() {
+  // 거래내역에서 현재 보유수량 계산 {종목명: 수량}
+  var h = {};
+  (window._entries||[]).forEach(function(e) {
+    var n = e.stock;
+    if (!h[n]) h[n] = 0;
+    if (e.type === 'buy') h[n] += e.qty;
+    else if (e.type === 'sell') h[n] = Math.max(0, h[n] - e.qty);
+  });
+  return h;
+}
+
+function getGrandTotal() {
+  // 전체 자산 총액 계산
+  var total = 0;
+  var fx = window._fxRate || 1300;
+  (liveData.stocks||[]).forEach(function(s) {
+    var h = getDivHoldings();
+    var qty = h[s.name] || 0;
+    if (qty <= 0) return;
+    var isUSD = isUSDTicker(s.ticker||'');
+    total += qty * s.price * (isUSD ? fx : 1);
+  });
+  (window._cashEntries||[]).forEach(function(e) {
+    total += e.type === 'in' ? e.amount : -e.amount;
+  });
+  return total;
+}
+
+function renderDividendPage() {
+  var cal = window._divCalendar;
+  if (!cal || !cal.row1 || !cal.rows) return;
+
+  var holdings = getDivHoldings();
+  var fx = window._fxRate || 1300;
+  var year = _divYear;
+  var months = [1,2,3,4,5,6,7,8,9,10,11,12];
+
+  // row1(연도), row2(월) → 해당 연도의 열 인덱스 찾기
+  // col 0 = 종목명
+  var colMap = {}; // month(1~12) → col index in rows[i]
+  var curYear = 0;
+  for (var c = 1; c < cal.row1.length; c++) {
+    if (cal.row1[c] && !isNaN(Number(cal.row1[c]))) curYear = Number(cal.row1[c]);
+    var m = parseInt(String(cal.row2[c]).replace('월',''));
+    if (curYear === year && m >= 1 && m <= 12) colMap[m] = c;
+  }
+
+  // 종목별 월별 배당금(주당) × 보유수량 계산
+  var stockRows = []; // {name, isUSD, vals:[m1..m12], total}
+  cal.rows.forEach(function(row) {
+    var name = String(row[0]||'').trim();
+    if (!name) return;
+    var qty = holdings[name] || 0;
+    var stock = (liveData.stocks||[]).find(function(s){return s.name===name;});
+    var isUSD = stock ? isUSDTicker(stock.ticker||'') : false;
+
+    var vals = months.map(function(m) {
+      var ci = colMap[m];
+      if (ci == null) return 0;
+      var perShare = Number(row[ci]) || 0;
+      if (!perShare || !qty) return 0;
+      return perShare * qty;
+    });
+    var total = vals.reduce(function(a,b){return a+b;},0);
+    if (total > 0) stockRows.push({name:name, isUSD:isUSD, vals:vals, total:total});
+  });
+
+  // 월별 합계
+  var monthTotals = months.map(function(m, i) {
+    var krw = 0;
+    stockRows.forEach(function(r) {
+      krw += r.isUSD ? r.vals[i] * fx : r.vals[i];
+    });
+    return krw;
+  });
+  var yearTotal = monthTotals.reduce(function(a,b){return a+b;},0);
+  var monthAvg = yearTotal / 12;
+  var grandTotal = getGrandTotal();
+  var yieldRate = grandTotal > 0 ? (yearTotal / grandTotal * 100) : 0;
+
+  // 요약 카드
+  var el = document.getElementById('divTotalYear');
+  if (el) el.textContent = '₩' + Math.round(yearTotal).toLocaleString('ko-KR');
+  el = document.getElementById('divMonthAvg');
+  if (el) el.textContent = '₩' + Math.round(monthAvg).toLocaleString('ko-KR');
+  el = document.getElementById('divYieldRate');
+  if (el) el.textContent = yieldRate.toFixed(2) + '%';
+
+  // 바 차트
+  renderDivBarChartMultiYear();
+
+  // 테이블 헤더
+  var thead = document.getElementById('divTableHead');
+  var tbody = document.getElementById('divTableBody');
+  if (!thead || !tbody) return;
+
+  var thStyle = 'padding:10px 8px;text-align:center;font-size:12px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap;';
+  var thFirstStyle = 'padding:10px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap;';
+  var monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
+  thead.innerHTML = '<tr><th style="'+thFirstStyle+'">종목명</th>'
+    + monthNames.map(function(m){return '<th style="'+thStyle+'">'+m+'</th>';}).join('')
+    + '<th style="'+thStyle+'">합계</th></tr>';
+
+  // 테이블 바디
+  var monthSumRow = months.map(function(){return 0;});
+  var rows = stockRows.slice().sort(function(a,b){return b.total-a.total;});
+
+  tbody.innerHTML = rows.map(function(r, ri) {
+    var bg = ri%2===0?'var(--surface)':'var(--surface2)';
+    var tdS = 'padding:8px 8px;text-align:right;font-size:12px;border-bottom:1px solid var(--border);';
+    var tdF = 'padding:8px 12px;text-align:left;font-size:12px;border-bottom:1px solid var(--border);font-weight:500;';
+    var rowTotal = 0;
+    var cells = r.vals.map(function(v, i) {
+      var krw = r.isUSD ? Math.round(v * fx) : Math.round(v);
+      monthSumRow[i] += krw;
+      rowTotal += krw;
+      return '<td style="'+tdS+'background:'+bg+'">'+(krw>0?'₩'+krw.toLocaleString('ko-KR'):'-')+'</td>';
+    }).join('');
+    return '<tr><td style="'+tdF+'background:'+bg+'">'+r.name+'</td>'+cells
+      +'<td style="'+tdS+'background:'+bg+';font-weight:600;color:var(--accent)">'
+      +(rowTotal>0?'₩'+rowTotal.toLocaleString('ko-KR'):'-')+'</td></tr>';
+  }).join('');
+
+  // 합계 행
+  var sumStyle = 'padding:9px 8px;text-align:right;font-size:12px;font-weight:600;background:var(--surface2);border-top:2px solid var(--border);color:var(--accent);';
+  var sumFirst = 'padding:9px 12px;text-align:left;font-size:12px;font-weight:600;background:var(--surface2);border-top:2px solid var(--border);color:var(--muted);';
+  tbody.innerHTML += '<tr><td style="'+sumFirst+'">합계</td>'
+    + monthSumRow.map(function(v){return '<td style="'+sumStyle+'">'+(v>0?'₩'+v.toLocaleString('ko-KR'):'-')+'</td>';}).join('')
+    + '<td style="'+sumStyle+'">₩'+Math.round(yearTotal).toLocaleString('ko-KR')+'</td></tr>';
+}
+
+function renderDivBarChart(monthTotals, months) {
+  renderDivBarChartMultiYear();
+}
+
+function renderDivBarChartMultiYear() {
+  var cal = window._divCalendar;
+  if (!cal || !cal.row1 || !cal.rows) return;
+  var canvas = document.getElementById('divBarChart');
+  if (!canvas) return;
+
+  var holdings = getDivHoldings();
+  var fx = window._fxRate || 1300;
+  var range = _divChartRange || 1;
+  var endYear = _divYear;
+  var startYear = endYear - range + 1;
+
+  // 연도-월 → 컬럼 인덱스 맵
+  var colMap = {};
+  var curY = 0;
+  for (var c = 1; c < cal.row1.length; c++) {
+    if (cal.row1[c] && !isNaN(Number(cal.row1[c]))) curY = Number(cal.row1[c]);
+    var m2 = parseInt(String(cal.row2[c]).replace('월',''));
+    if (curY >= startYear && curY <= endYear && m2 >= 1 && m2 <= 12) {
+      colMap[curY + '-' + m2] = c;
+    }
+  }
+
+  // 라벨 목록 (startYear Jan ~ endYear Dec)
+  var labels = [];
+  for (var y = startYear; y <= endYear; y++) {
+    for (var mo = 1; mo <= 12; mo++) {
+      labels.push({year:y, month:mo, key:y+'-'+mo});
+    }
+  }
+
+  // 각 라벨별 총 배당 (원화)
+  var totals = labels.map(function(lb) {
+    var sum = 0;
+    cal.rows.forEach(function(row) {
+      var name = String(row[0]||'').trim();
+      if (!name) return;
+      var qty = holdings[name] || 0;
+      if (!qty) return;
+      var ci = colMap[lb.key];
+      if (ci == null) return;
+      var perShare = Number(row[ci]) || 0;
+      if (!perShare) return;
+      var stock = (liveData.stocks||[]).find(function(s){return s.name===name;});
+      var isUSD = stock ? isUSDTicker(stock.ticker||'') : false;
+      sum += perShare * qty * (isUSD ? fx : 1);
+    });
+    return sum;
+  });
+
+  var ctx = canvas.getContext('2d');
+  var W = canvas.offsetWidth || 700;
+  var H = range > 1 ? 200 : 180;
+  canvas.width = W; canvas.height = H;
+  ctx.clearRect(0, 0, W, H);
+
+  var max = Math.max.apply(null, totals) || 1;
+  var pad = {l:14, r:14, t:16, b: range > 1 ? 44 : 36};
+  var chartW = W - pad.l - pad.r;
+  var chartH = H - pad.t - pad.b;
+  var n = labels.length;
+  var barW = Math.max(2, Math.floor(chartW / n * 0.7));
+  var gap  = chartW / n;
+  var accent = '#3b7bff';
+  var muted = '#8892a4';
+  var textColor = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#e8eaf0';
+
+  // 연도 구분선
+  if (range > 1) {
+    for (var y2 = startYear; y2 <= endYear; y2++) {
+      var xi = (y2 - startYear) * 12;
+      var x0 = pad.l + xi * gap;
+      ctx.strokeStyle = 'rgba(136,146,164,0.2)';
+      ctx.lineWidth = 1;
+      ctx.setLineDash([3,3]);
+      ctx.beginPath(); ctx.moveTo(x0, pad.t); ctx.lineTo(x0, pad.t + chartH); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = muted;
+      ctx.font = 'bold 10px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(y2+'년', x0+2, H - 4);
+    }
+  }
+
+  totals.forEach(function(v, i) {
+    var lb = labels[i];
+    var x = pad.l + i * gap + (gap - barW) / 2;
+    var bh = v > 0 ? Math.max(3, Math.round(v / max * chartH)) : 0;
+    var y3 = pad.t + chartH - bh;
+
+    ctx.fillStyle = v > 0 ? accent : 'rgba(59,123,255,0.12)';
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y3, barW, bh||2, [2,2,0,0]);
+    else ctx.rect(x, y3, barW, bh||2);
+    ctx.fill();
+
+    // 금액 레이블 (1Y일 때만 또는 충분히 클 때)
+    if (v > 0 && (range === 1 || barW >= 10)) {
+      ctx.fillStyle = textColor;
+      ctx.font = '8px sans-serif';
+      ctx.textAlign = 'center';
+      var label = v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? Math.round(v/1000)+'K' : Math.round(v)+'';
+      if (bh > 14) ctx.fillText(label, x+barW/2, y3-3);
+    }
+
+    // 월 레이블 (1Y: 모두, 3Y: 분기, 5Y+: 6개월)
+    var showLabel = range===1 || (range===3 && lb.month%3===1) || (range>=5 && lb.month%6===1);
+    if (showLabel && range===1) {
+      ctx.fillStyle = muted;
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(lb.month+'월', x+barW/2, H - (range>1?18:8));
+    }
+  });
+}
+
 function renderTaxCheck() {
   var year=new Date().getFullYear();
   var taxYearEl=document.getElementById('taxYear');if(taxYearEl)taxYearEl.textContent=year+'년';
