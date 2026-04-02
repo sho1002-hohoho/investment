@@ -19,10 +19,9 @@ function goTo(page) {
   try { localStorage.setItem('lastPage', page); } catch(e) {}
   // 실현손익 카드 렌더
   if (page === 'samsung') { renderRealizedProfit('samsung','all'); renderMiniPerfChart('samsung','all'); }
-  if (page === 'isa') { renderMiniPerfChart('isa','all'); }
+  if (page === 'isa')     { renderRealizedProfit('isa','all');     renderMiniPerfChart('isa','all'); }
   if (page === 'pension') { renderMiniPerfChart('pension','all'); }
-  if (page === 'overseas') { renderMiniPerfChart('overseas','all'); }
-  if (page === 'isa') renderRealizedProfit('isa','all');
+  if (page === 'overseas'){ renderMiniPerfChart('overseas','all'); }
   // 거래일지: 항상 이번달 필터 적용
   if (page === 'journal') {
     var el = document.getElementById('journalMonthFilter');
@@ -1825,6 +1824,7 @@ function fetchLiveData(manual) {
     refreshAll();
     renderDividendPage();
     ['samsung','isa','pension','overseas'].forEach(function(k){ if(typeof renderMiniPerfChart==='function') renderMiniPerfChart(k,'all'); });
+    if(typeof renderRealizedProfit==='function') { renderRealizedProfit('samsung','all'); renderRealizedProfit('isa','all'); }
     // history 데이터 로드 후 수익률 차트 재렌더
     renderPerfChart('perfChartSamsung','삼성계좌','1w');
     renderDashboardPerfChart('1w');
@@ -1867,7 +1867,7 @@ function isUSDStock(name) {
 // ── 종목 메타데이터 ──
 var _stockMeta = {};
 function getStockMeta(name) { if(!_stockMeta[name]) _stockMeta[name]={section:'',asset:'',status:'',theme:''}; return _stockMeta[name]; }
-function updateStockMeta(name,key,val) { if(!_stockMeta[name]) _stockMeta[name]={section:'',asset:'',status:'',theme:''}; _stockMeta[name][key]=val; try{localStorage.setItem('stockMeta',JSON.stringify(_stockMeta));}catch(e){} }
+function updateStockMeta(name,key,val) { if(!_stockMeta[name]) _stockMeta[name]={section:'',asset:'',status:'',theme:''}; _stockMeta[name][key]=val; try{localStorage.setItem('stockMeta',JSON.stringify(_stockMeta));}catch(e){} if(typeof refreshAll==='function') refreshAll(); }
 function loadStockMeta() { try{var d=localStorage.getItem('stockMeta');if(d)_stockMeta=JSON.parse(d);}catch(e){} }
 var sectionOpts = ['','성장주','배당주','가치주','ETF','리츠'];
 var assetOpts   = ['','국내주식','해외주식','채권','안전자산'];
@@ -2176,18 +2176,29 @@ function loadIsaTargets() { try{var d=localStorage.getItem('isaTargets');if(d){v
 function saveIsaTargets() { try{localStorage.setItem('isaTargets',JSON.stringify(isaTargets.map(function(t){return {label:t.label,pct:t.pct};})));}catch(e){} }
 function updateIsaTarget(label,val) { var t=isaTargets.find(function(t){return t.label===label;});if(t){t.pct=parseFloat(val)||0;renderIsaCompare();saveIsaTargets();} }
 function renderIsaCompare() {
-  var stocks=getAcctStocks('ISA'),cash=getAcctCash('ISA'),total=cash,stockVals={};
-  stocks.forEach(function(s){var live=getLive(s.stock),cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1)),v=cur*s.totalQty;stockVals[s.stock]=v;total+=v;});
+  // ISA 계좌 종목만 집계
+  var stockVals={}, total=0;
+  getAcctStocks('ISA').forEach(function(s){
+    var live=getLive(s.stock),fx=window._fxRate||1300;
+    var cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1));
+    var isUSD=live?isUSDTicker(live.ticker||''):false;
+    var v=cur*s.totalQty*(isUSD?fx:1);
+    stockVals[s.stock]=(stockVals[s.stock]||0)+v;
+    total+=v;
+  });
+  total+=getAcctCash('ISA');
+  var cash=getAcctCash('ISA');
 
-  // 종목현황 - 자산현황(status) 기준으로 actualMap 집계
+  // 자산현황(status) 기준으로 actualMap 집계
   var actualMap={};isaTargets.forEach(function(t){actualMap[t.label]=0;});
   Object.keys(stockVals).forEach(function(stockName){
     var meta=_stockMeta[stockName]||{};
     var status=meta.status||'';
     if(status && actualMap.hasOwnProperty(status)) actualMap[status]+=stockVals[stockName];
   });
-  // 예수금은 채권으로 분류
-  if(cash>0 && actualMap.hasOwnProperty('채권')) actualMap['채권']+=cash;
+  // 전체 예수금을 채권으로 분류
+  var totalCash=allAccts.reduce(function(s,a){return s+getAcctCash(a);},0);
+  if(totalCash>0 && actualMap.hasOwnProperty('채권')) actualMap['채권']+=totalCash;
 
   var targetList=document.getElementById('isaTargetList'),sumEl=document.getElementById('isaTargetSum');
   if(targetList) targetList.innerHTML=isaTargets.map(function(t){
@@ -2232,18 +2243,29 @@ function loadPensionTargets() { try{var d=localStorage.getItem('pensionTargets')
 function savePensionTargets() { try{localStorage.setItem('pensionTargets',JSON.stringify(pensionTargets.map(function(t){return {label:t.label,pct:t.pct};})));}catch(e){} }
 function updatePensionTarget(label,val) { var t=pensionTargets.find(function(t){return t.label===label;});if(t){t.pct=parseFloat(val)||0;renderPensionCompare();savePensionTargets();} }
 function renderPensionCompare() {
-  var stocks=getAcctStocks('연금저축'),cash=getAcctCash('연금저축'),total=cash,stockVals={};
-  stocks.forEach(function(s){var live=getLive(s.stock),cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1)),v=cur*s.totalQty;stockVals[s.stock]=v;total+=v;});
+  // 연금저축 계좌 종목만 집계
+  var stockVals={}, total=0;
+  getAcctStocks('연금저축').forEach(function(s){
+    var live=getLive(s.stock),fx=window._fxRate||1300;
+    var cur=(live&&live.price)?live.price:(s.totalBuy/Math.max(s.totalQty,1));
+    var isUSD=live?isUSDTicker(live.ticker||''):false;
+    var v=cur*s.totalQty*(isUSD?fx:1);
+    stockVals[s.stock]=(stockVals[s.stock]||0)+v;
+    total+=v;
+  });
+  total+=getAcctCash('연금저축');
+  var cash=getAcctCash('연금저축');
 
-  // 종목현황 - 자산현황(status) 기준으로 actualMap 집계
+  // 자산현황(status) 기준으로 actualMap 집계
   var actualMap={};pensionTargets.forEach(function(t){actualMap[t.label]=0;});
   Object.keys(stockVals).forEach(function(stockName){
     var meta=_stockMeta[stockName]||{};
     var status=meta.status||'';
     if(status && actualMap.hasOwnProperty(status)) actualMap[status]+=stockVals[stockName];
   });
-  // 예수금은 채권으로 분류
-  if(cash>0 && actualMap.hasOwnProperty('채권')) actualMap['채권']+=cash;
+  // 전체 예수금을 채권으로 분류
+  var totalCash=allAccts.reduce(function(s,a){return s+getAcctCash(a);},0);
+  if(totalCash>0 && actualMap.hasOwnProperty('채권')) actualMap['채권']+=totalCash;
 
   var targetList=document.getElementById('pensionTargetList'),sumEl=document.getElementById('pensionTargetSum');
   if(targetList) targetList.innerHTML=pensionTargets.map(function(t){
