@@ -20,6 +20,7 @@ function goTo(page) {
   // 실현손익 카드 렌더
   if (page === 'samsung') renderRealizedProfit('samsung','all');
   if (page === 'isa') renderRealizedProfit('isa','all');
+  if (page === 'journal') initJournalMonthFilter();
 }
 function closeMobileNav() { document.getElementById('mobileNav').classList.remove('open'); document.getElementById('mobileNavOverlay').classList.remove('open'); }
 function mobileGoTo(page) { closeMobileNav(); goTo(page); }
@@ -1270,6 +1271,13 @@ async function checkPw() {
           <button class="journal-tab" id="tabCash" onclick="switchJournalTab('cash')">예수금 거래</button>
           <button class="journal-tab" id="tabFx" onclick="switchJournalTab('fx')">환전</button>
         </div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span style="font-size:12px;color:var(--muted)">기간</span>
+          <input type="month" id="journalMonthFilter"
+            style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:var(--text);font-size:12px;outline:none;cursor:pointer"
+            onchange="applyJournalMonthFilter()">
+          <button onclick="clearJournalMonthFilter()" style="font-size:11px;padding:3px 8px;border-radius:5px;border:none;background:var(--surface2);color:var(--muted);cursor:pointer">전체</button>
+        </div>
         <div style="display:flex;gap:8px" id="tradeButtons">
           <label class="csv-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>가져오기<input type="file" accept=".csv" id="csvImportInput" style="display:none"></label>
           <button class="csv-btn" id="exportBtn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>내보내기</button>
@@ -1414,24 +1422,46 @@ async function checkPw() {
       <div class="summary-card"><div class="summary-label">하락 종목</div><div class="summary-value dn" id="sDown">0개</div></div>
       <div class="summary-card"><div class="summary-label">마지막 갱신</div><div class="summary-value" id="sTime" style="font-size:13px">-</div></div>
     </div>
-    <div class="journal-table-wrap">
-      <div class="journal-table-header"><span class="card-heading">전체 종목 목록</span></div>
-      <div style="overflow-x:auto;overflow-y:auto;max-height:700px">
-        <table class="jt" id="stocksTable" style="table-layout:fixed;width:100%">
+    <!-- 국내주식 테이블 -->
+    <div class="journal-table-wrap" style="margin-bottom:20px">
+      <div class="journal-table-header"><span class="card-heading">🇰🇷 국내주식</span><span id="sCountKR" style="font-size:11px;color:var(--muted)"></span></div>
+      <div style="overflow-x:auto;overflow-y:auto;max-height:500px">
+        <table class="jt" style="table-layout:fixed;width:100%">
           <thead><tr>
-            <th style="width:16%;position:relative">종목명<span class="col-resizer"></span></th>
-            <th style="width:11%;position:relative">티커<span class="col-resizer"></span></th>
-            <th style="width:20%;position:relative;text-align:left">현재가<span class="col-resizer"></span></th>
-            <th style="width:14%;position:relative">전일대비<span class="col-resizer"></span></th>
-            <th style="width:13%;position:relative">섹션<span class="col-resizer"></span></th>
-            <th style="width:13%;position:relative">자산구분<span class="col-resizer"></span></th>
-            <th style="width:13%;position:relative">자산현황<span class="col-resizer"></span></th>
-            <th style="width:13%">테마</th>
+            <th style="width:16%;position:sticky;top:0;z-index:2;background:var(--surface)">종목명</th>
+            <th style="width:11%;position:sticky;top:0;z-index:2;background:var(--surface)">티커</th>
+            <th style="width:20%;position:sticky;top:0;z-index:2;background:var(--surface);text-align:left">현재가</th>
+            <th style="width:14%;position:sticky;top:0;z-index:2;background:var(--surface)">전일대비</th>
+            <th style="width:13%;position:sticky;top:0;z-index:2;background:var(--surface)">섹션</th>
+            <th style="width:13%;position:sticky;top:0;z-index:2;background:var(--surface)">자산구분</th>
+            <th style="width:13%;position:sticky;top:0;z-index:2;background:var(--surface)">자산현황</th>
+            <th style="width:13%;position:sticky;top:0;z-index:2;background:var(--surface)">테마</th>
           </tr></thead>
-          <tbody id="stocksBody"></tbody>
+          <tbody id="stocksBodyKR"></tbody>
         </table>
       </div>
-      <div id="stocksEmpty" class="empty-state"><div>📈</div>구글 시트에 종목을 추가하면 여기에 표시돼요!</div>
+      <div id="stocksEmptyKR" class="empty-state" style="display:none"><div>📈</div>국내 종목이 없어요!</div>
+    </div>
+
+    <!-- 해외주식 테이블 -->
+    <div class="journal-table-wrap">
+      <div class="journal-table-header"><span class="card-heading">🌍 해외주식</span><span id="sCountUS" style="font-size:11px;color:var(--muted)"></span></div>
+      <div style="overflow-x:auto;overflow-y:auto;max-height:500px">
+        <table class="jt" style="table-layout:fixed;width:100%">
+          <thead><tr>
+            <th style="width:16%;position:sticky;top:0;z-index:2;background:var(--surface)">종목명</th>
+            <th style="width:11%;position:sticky;top:0;z-index:2;background:var(--surface)">티커</th>
+            <th style="width:20%;position:sticky;top:0;z-index:2;background:var(--surface);text-align:left">현재가</th>
+            <th style="width:14%;position:sticky;top:0;z-index:2;background:var(--surface)">전일대비</th>
+            <th style="width:13%;position:sticky;top:0;z-index:2;background:var(--surface)">섹션</th>
+            <th style="width:13%;position:sticky;top:0;z-index:2;background:var(--surface)">자산구분</th>
+            <th style="width:13%;position:sticky;top:0;z-index:2;background:var(--surface)">자산현황</th>
+            <th style="width:13%;position:sticky;top:0;z-index:2;background:var(--surface)">테마</th>
+          </tr></thead>
+          <tbody id="stocksBodyUS"></tbody>
+        </table>
+      </div>
+      <div id="stocksEmptyUS" class="empty-state" style="display:none"><div>🌍</div>해외 종목이 없어요!</div>
     </div>
   </div>
 </div>
@@ -2306,9 +2336,12 @@ function renderDivBarChartMultiYear() {
   });
 
   var ctx = canvas.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
   var W = canvas.offsetWidth || 700;
   var H = range > 1 ? 200 : 200;
-  canvas.width = W; canvas.height = H;
+  canvas.width = W * dpr; canvas.height = H * dpr;
+  canvas.style.width = W + 'px'; canvas.style.height = H + 'px';
+  ctx.scale(dpr, dpr);
   ctx.clearRect(0, 0, W, H);
 
   var max = Math.max.apply(null, totals) || 1;
@@ -2476,6 +2509,34 @@ function renderRealizedProfit(acctKey, range) {
   }).join('');
 }
 
+
+// ── 거래일지 월 필터 ──
+var _journalMonth = ''; // 'YYYY-MM' or ''
+
+function initJournalMonthFilter() {
+  var now = new Date();
+  var ym = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
+  var el = document.getElementById('journalMonthFilter');
+  if (el) { el.value = ym; _journalMonth = ym; }
+}
+
+function applyJournalMonthFilter() {
+  var el = document.getElementById('journalMonthFilter');
+  _journalMonth = el ? el.value : '';
+  renderJournal();
+  if (window.renderCashJournal) window.renderCashJournal();
+  renderFxJournal();
+}
+
+function clearJournalMonthFilter() {
+  _journalMonth = '';
+  var el = document.getElementById('journalMonthFilter');
+  if (el) el.value = '';
+  renderJournal();
+  if (window.renderCashJournal) window.renderCashJournal();
+  renderFxJournal();
+}
+
 function renderTaxCheck() {
   var year=new Date().getFullYear();
   var taxYearEl=document.getElementById('taxYear');if(taxYearEl)taxYearEl.textContent=year+'년';
@@ -2491,7 +2552,8 @@ function renderTaxCheck() {
 
 // ── 거래일지 ──
 function renderJournal() {
-  var entries=window._entries||[];
+  var all=window._entries||[];
+  var entries = _journalMonth ? all.filter(function(e){ return e.date && e.date.slice(0,7)===_journalMonth; }) : all;
   var tbody=document.getElementById('journalBody'),empty=document.getElementById('journalEmpty');
   if(!tbody)return;
   if(!entries.length){tbody.innerHTML='';if(empty)empty.style.display='block';return;}
@@ -2519,10 +2581,11 @@ function deleteEntry(id) { window._entries=(window._entries||[]).filter(function
 
 // ── 예수금 ──
 window.renderCashJournal = function() {
-  var entries=window._cashEntries||[];
+  var all=window._cashEntries||[];
+  var entries = _journalMonth ? all.filter(function(e){ return e.date && e.date.slice(0,7)===_journalMonth; }) : all;
   var tbody=document.getElementById('cashBody'),empty=document.getElementById('cashEmpty');
   if(!tbody)return;
-  var bal=entries.reduce(function(s,e){return e.type==='in'?s+e.amount:s-e.amount;},0);
+  var bal=(window._cashEntries||[]).reduce(function(s,e){return e.type==='in'?s+e.amount:s-e.amount;},0);
   var balEl=document.getElementById('cashBalance');if(balEl){balEl.textContent='₩'+Math.round(bal).toLocaleString('ko-KR');balEl.style.color=bal>=0?'var(--green)':'var(--red)';}
   renderSamsungCash();
   ['Isa','Savings','Pension','Overseas'].forEach(function(cap){var accts={'Isa':'ISA','Savings':'적금&CMA','Pension':'연금저축','Overseas':'해외계좌'};var b=getAcctCash(accts[cap]),el=document.getElementById('overviewCash'+cap);if(el){el.textContent='₩'+Math.round(b).toLocaleString('ko-KR');el.style.color=b>=0?'var(--green)':'var(--red)';}});
@@ -2845,39 +2908,57 @@ function renderStatsPage() {
 }
 function renderStocksPage() {
   var stocks=liveData.stocks||[];
+  var krStocks = stocks.filter(function(s){ return !isUSDTicker(s.ticker); });
+  var usStocks = stocks.filter(function(s){ return isUSDTicker(s.ticker); });
   var up=stocks.filter(function(s){return Number(s.changePct)>0;}).length;
   var dn=stocks.filter(function(s){return Number(s.changePct)<0;}).length;
   var sCount=document.getElementById('sCount');if(sCount)sCount.textContent=stocks.length+'개';
   var sUp=document.getElementById('sUp');if(sUp)sUp.textContent=up+'개';
   var sDown=document.getElementById('sDown');if(sDown)sDown.textContent=dn+'개';
   var sTime=document.getElementById('sTime');if(sTime)sTime.textContent=new Date().toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'});
-  var tbody=document.getElementById('stocksBody'),empty=document.getElementById('stocksEmpty');
-  if(!tbody)return;
-  if(!stocks.length){tbody.innerHTML='';if(empty)empty.style.display='block';return;}
-  if(empty)empty.style.display='none';
-  tbody.innerHTML=stocks.map(function(s){
-    var pct=Number(s.changePct)||0,cls=pct>0?'up':pct<0?'dn':'',arrow=pct>0?'▲':pct<0?'▼':'─';
-    var meta=getStockMeta(s.name);
-    var isUSD=isUSDTicker(s.ticker);
-    var fx=window._fxRate||1300;
-    var rawPrice=Number(s.price)||0;
-    var priceKRW=isUSD?Math.round(rawPrice*fx):Math.round(rawPrice);
-    var priceStr=isUSD
-      ?'<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;justify-content:flex-start">'
-       +'<span style="font-weight:600">₩'+priceKRW.toLocaleString('ko-KR')+'</span>'
-       +'<span style="color:var(--muted);font-size:10px;letter-spacing:-0.2px">$'+rawPrice.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'</span>'
-       +'</div>'
-      :'₩'+priceKRW.toLocaleString('ko-KR');
-    return '<tr>'
-      +'<td><div class="stock-name-cell"><div class="mini-icon">'+s.name[0]+'</div><span style="font-weight:500">'+s.name+'</span></div></td>'
-      +'<td class="mono" style="color:var(--muted)">'+( s.ticker||'-')+'</td>'
-      +'<td class="mono" style="white-space:normal;vertical-align:middle;text-align:left">'+priceStr+'</td>'
-      +'<td class="mono '+cls+'">'+arrow+' '+(Math.abs(pct).toFixed(2))+'%</td>'
-      +'<td>'+makeSelect(s.name,'section',sectionOpts,meta.section)+'</td>'
-      +'<td>'+makeSelect(s.name,'asset',assetOpts,meta.asset)+'</td>'
-      +'<td>'+makeSelect(s.name,'status',statusOpts,meta.status)+'</td>'
-      +'<td>'+makeSelect(s.name,'theme',themeOpts,meta.theme)+'</td></tr>';
-  }).join('');
+
+  var cKR=document.getElementById('sCountKR'); if(cKR) cKR.textContent=' · '+krStocks.length+'개';
+  var cUS=document.getElementById('sCountUS'); if(cUS) cUS.textContent=' · '+usStocks.length+'개';
+
+  function makeRows(list) {
+    return list.map(function(s){
+      var pct=Number(s.changePct)||0,cls=pct>0?'up':pct<0?'dn':'',arrow=pct>0?'▲':pct<0?'▼':'─';
+      var meta=getStockMeta(s.name);
+      var isUSD=isUSDTicker(s.ticker);
+      var fx=window._fxRate||1300;
+      var rawPrice=Number(s.price)||0;
+      var priceKRW=isUSD?Math.round(rawPrice*fx):Math.round(rawPrice);
+      var priceStr=isUSD
+        ?'<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap;justify-content:flex-start">'
+         +'<span style="font-weight:600">₩'+priceKRW.toLocaleString('ko-KR')+'</span>'
+         +'<span style="color:var(--muted);font-size:10px;letter-spacing:-0.2px">$'+rawPrice.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})+'</span>'
+         +'</div>'
+        :'₩'+priceKRW.toLocaleString('ko-KR');
+      return '<tr>'
+        +'<td><div class="stock-name-cell"><div class="mini-icon">'+s.name[0]+'</div><span style="font-weight:500">'+s.name+'</span></div></td>'
+        +'<td class="mono" style="color:var(--muted)">'+(s.ticker||'-')+'</td>'
+        +'<td class="mono" style="white-space:normal;vertical-align:middle;text-align:left">'+priceStr+'</td>'
+        +'<td class="mono '+cls+'">'+arrow+' '+(Math.abs(pct).toFixed(2))+'%</td>'
+        +'<td>'+makeSelect(s.name,'section',sectionOpts,meta.section)+'</td>'
+        +'<td>'+makeSelect(s.name,'asset',assetOpts,meta.asset)+'</td>'
+        +'<td>'+makeSelect(s.name,'status',statusOpts,meta.status)+'</td>'
+        +'<td>'+makeSelect(s.name,'theme',themeOpts,meta.theme)+'</td></tr>';
+    }).join('');
+  }
+
+  var tbodyKR=document.getElementById('stocksBodyKR');
+  var tbodyUS=document.getElementById('stocksBodyUS');
+  var emptyKR=document.getElementById('stocksEmptyKR');
+  var emptyUS=document.getElementById('stocksEmptyUS');
+
+  if(tbodyKR){
+    tbodyKR.innerHTML = makeRows(krStocks);
+    if(emptyKR) emptyKR.style.display = krStocks.length?'none':'block';
+  }
+  if(tbodyUS){
+    tbodyUS.innerHTML = makeRows(usStocks);
+    if(emptyUS) emptyUS.style.display = usStocks.length?'none':'block';
+  }
 }
 
 // ── 환전 ──
@@ -2925,7 +3006,8 @@ function deleteFxEntry(id) {
   refreshAll();
 }
 function renderFxJournal() {
-  var entries = window._fxEntries || [];
+  var _allFx = window._fxEntries || [];
+  var entries = _journalMonth ? _allFx.filter(function(e){ return e.date && e.date.slice(0,7)===_journalMonth; }) : _allFx;
   var tbody = document.getElementById('fxBody');
   var empty = document.getElementById('fxEmpty');
   if (!tbody) return;
