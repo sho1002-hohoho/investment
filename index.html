@@ -1271,11 +1271,13 @@ async function checkPw() {
           <button class="journal-tab" id="tabCash" onclick="switchJournalTab('cash')">예수금 거래</button>
           <button class="journal-tab" id="tabFx" onclick="switchJournalTab('fx')">환전</button>
         </div>
-        <div style="display:flex;gap:8px;align-items:center">
+        <div style="display:flex;gap:6px;align-items:center">
           <span style="font-size:12px;color:var(--muted)">기간</span>
+          <button onclick="shiftJournalMonth(-1)" style="background:var(--surface2);border:none;color:var(--text);width:26px;height:26px;border-radius:5px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">‹</button>
           <input type="month" id="journalMonthFilter"
             style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:3px 8px;color:var(--text);font-size:12px;outline:none;cursor:pointer"
             onchange="applyJournalMonthFilter()">
+          <button onclick="shiftJournalMonth(1)" style="background:var(--surface2);border:none;color:var(--text);width:26px;height:26px;border-radius:5px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">›</button>
           <button onclick="clearJournalMonthFilter()" style="font-size:11px;padding:3px 8px;border-radius:5px;border:none;background:var(--surface2);color:var(--muted);cursor:pointer">전체</button>
         </div>
         <div style="display:flex;gap:8px" id="tradeButtons">
@@ -1425,7 +1427,7 @@ async function checkPw() {
     <!-- 국내주식 테이블 -->
     <div class="journal-table-wrap" style="margin-bottom:20px">
       <div class="journal-table-header"><span class="card-heading">🇰🇷 국내주식</span><span id="sCountKR" style="font-size:11px;color:var(--muted)"></span></div>
-      <div style="overflow-x:auto;overflow-y:auto;max-height:500px">
+      <div style="overflow-x:auto;overflow-y:auto;max-height:450px">
         <table class="jt" style="table-layout:fixed;width:100%">
           <thead><tr>
             <th style="width:16%;position:sticky;top:0;z-index:2;background:var(--surface)">종목명</th>
@@ -1446,7 +1448,7 @@ async function checkPw() {
     <!-- 해외주식 테이블 -->
     <div class="journal-table-wrap">
       <div class="journal-table-header"><span class="card-heading">🌍 해외주식</span><span id="sCountUS" style="font-size:11px;color:var(--muted)"></span></div>
-      <div style="overflow-x:auto;overflow-y:auto;max-height:500px">
+      <div style="overflow-x:auto;overflow-y:auto;max-height:450px">
         <table class="jt" style="table-layout:fixed;width:100%">
           <thead><tr>
             <th style="width:16%;position:sticky;top:0;z-index:2;background:var(--surface)">종목명</th>
@@ -1572,8 +1574,8 @@ async function checkPw() {
 
     <!-- 배당 테이블 카드 -->
     <div class="card" style="padding:0;overflow:hidden">
-      <div style="overflow-x:auto;overflow-y:auto;max-height:420px">
-        <table id="divTable" style="width:100%;border-collapse:collapse;font-size:13px;min-width:700px">
+      <div style="overflow-x:auto;overflow-y:auto;max-height:600px">
+        <table id="divTable" style="width:100%;border-collapse:collapse;font-size:13px;min-width:900px">
           <thead id="divTableHead" style="position:sticky;top:0;z-index:2"></thead>
           <tbody id="divTableBody"></tbody>
         </table>
@@ -2246,7 +2248,7 @@ function renderDividendPage() {
   if (!thead || !tbody) return;
 
   var thStyle = 'padding:10px 8px;text-align:center;font-size:12px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap;';
-  var thFirstStyle = 'padding:10px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap;';
+  var thFirstStyle = 'padding:10px 12px;text-align:left;font-size:12px;font-weight:600;color:var(--muted);border-bottom:1px solid var(--border);background:var(--surface2);white-space:nowrap;min-width:200px;width:200px;';
   var monthNames = ['1월','2월','3월','4월','5월','6월','7월','8월','9월','10월','11월','12월'];
   thead.innerHTML = '<tr><th style="'+thFirstStyle+'">종목명</th>'
     + monthNames.map(function(m){return '<th style="'+thStyle+'">'+m+'</th>';}).join('')
@@ -2259,7 +2261,7 @@ function renderDividendPage() {
   tbody.innerHTML = rows.map(function(r, ri) {
     var bg = ri%2===0?'var(--surface)':'var(--surface2)';
     var tdS = 'padding:8px 8px;text-align:right;font-size:12px;border-bottom:1px solid var(--border);';
-    var tdF = 'padding:8px 12px;text-align:left;font-size:12px;border-bottom:1px solid var(--border);font-weight:500;';
+    var tdF = 'padding:8px 12px;text-align:left;font-size:12px;border-bottom:1px solid var(--border);font-weight:500;min-width:200px;width:200px;';
     var rowTotal = 0;
     var cells = r.vals.map(function(v, i) {
       var krw = r.isUSD ? Math.round(v * fx) : Math.round(v);
@@ -2274,7 +2276,7 @@ function renderDividendPage() {
 
   // 합계 행
   var sumStyle = 'padding:9px 8px;text-align:right;font-size:12px;font-weight:600;background:var(--surface2);border-top:2px solid var(--border);color:var(--accent);';
-  var sumFirst = 'padding:9px 12px;text-align:left;font-size:12px;font-weight:600;background:var(--surface2);border-top:2px solid var(--border);color:var(--muted);';
+  var sumFirst = 'padding:9px 12px;text-align:left;font-size:12px;font-weight:600;background:var(--surface2);border-top:2px solid var(--border);color:var(--muted);min-width:200px;width:200px;';
   tbody.innerHTML += '<tr><td style="'+sumFirst+'">합계</td>'
     + monthSumRow.map(function(v){return '<td style="'+sumStyle+'">'+(v>0?'₩'+v.toLocaleString('ko-KR'):'-')+'</td>';}).join('')
     + '<td style="'+sumStyle+'">₩'+Math.round(yearTotal).toLocaleString('ko-KR')+'</td></tr>';
@@ -2518,6 +2520,23 @@ function initJournalMonthFilter() {
   var ym = now.getFullYear() + '-' + String(now.getMonth()+1).padStart(2,'0');
   var el = document.getElementById('journalMonthFilter');
   if (el) { el.value = ym; _journalMonth = ym; }
+}
+
+function shiftJournalMonth(dir) {
+  var el = document.getElementById('journalMonthFilter');
+  if (!el) return;
+  var val = el.value || new Date().toISOString().slice(0,7);
+  var parts = val.split('-');
+  var y = parseInt(parts[0]), m = parseInt(parts[1]);
+  m += dir;
+  if (m > 12) { m = 1; y++; }
+  if (m < 1)  { m = 12; y--; }
+  var ym = y + '-' + String(m).padStart(2,'0');
+  el.value = ym;
+  _journalMonth = ym;
+  renderJournal();
+  if (window.renderCashJournal) window.renderCashJournal();
+  renderFxJournal();
 }
 
 function applyJournalMonthFilter() {
