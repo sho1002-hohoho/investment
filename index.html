@@ -1288,16 +1288,16 @@ async function checkPw() {
         </div>
       </div>
       <div id="paneTrade">
-        <div style="overflow-x:auto;overflow-y:auto;max-height:600px"><table class="jt"><thead><tr><th style="position:sticky;top:0;z-index:2;background:var(--surface)">날짜</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">구분</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">종목명</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">계좌</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">수량</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">매수단가</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">매도단가</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">총매수</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">총매도</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">손익</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">비고</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)"></th></tr></thead><tbody id="journalBody"></tbody></table></div>
+        <div style="overflow-x:auto;overflow-y:auto;max-height:700px"><table class="jt"><thead><tr><th style="position:sticky;top:0;z-index:2;background:var(--surface)">날짜</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">구분</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">종목명</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">계좌</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">수량</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">매수단가</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">매도단가</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">총매수</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">총매도</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">손익</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">비고</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)"></th></tr></thead><tbody id="journalBody"></tbody></table></div>
         <div id="journalEmpty" class="empty-state"><div>📋</div>거래 내역이 없어요. 거래 추가 버튼으로 시작하세요!</div>
       </div>
       <div id="paneCash" style="display:none">
-        <div style="overflow-x:auto"><table class="jt"><thead><tr><th>날짜</th><th>구분</th><th>계좌</th><th>금액</th><th>비고</th><th></th></tr></thead><tbody id="cashBody"></tbody></table></div>
+        <div style="overflow-x:auto;overflow-y:auto;max-height:700px"><table class="jt"><thead><tr><th style="position:sticky;top:0;z-index:2;background:var(--surface)">날짜</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">구분</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">계좌</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">금액</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">비고</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)"></th></tr></thead><tbody id="cashBody"></tbody></table></div>
         <div id="cashEmpty" class="empty-state"><div>💰</div>예수금 거래 내역이 없어요!</div>
       </div>
       <div id="paneFx" style="display:none">
-        <div style="overflow-x:auto"><table class="jt"><thead><tr>
-          <th>날짜</th><th>출금계좌(원화)</th><th>원화금액</th><th>적용환율</th><th>달러금액</th><th>비고</th><th></th>
+        <div style="overflow-x:auto;overflow-y:auto;max-height:700px"><table class="jt"><thead><tr>
+          <th style="position:sticky;top:0;z-index:2;background:var(--surface)">날짜</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">출금계좌(원화)</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">원화금액</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">적용환율</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">달러금액</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)">비고</th><th style="position:sticky;top:0;z-index:2;background:var(--surface)"></th>
         </tr></thead><tbody id="fxBody"></tbody></table></div>
         <div id="fxEmpty" class="empty-state"><div>💱</div>환전 내역이 없어요!</div>
       </div>
@@ -1416,7 +1416,7 @@ async function checkPw() {
     </div>
     <div class="journal-table-wrap">
       <div class="journal-table-header"><span class="card-heading">전체 종목 목록</span></div>
-      <div style="overflow-x:auto;overflow-y:auto;max-height:600px">
+      <div style="overflow-x:auto;overflow-y:auto;max-height:700px">
         <table class="jt" id="stocksTable" style="table-layout:fixed;width:100%">
           <thead><tr>
             <th style="width:16%;position:relative">종목명<span class="col-resizer"></span></th>
