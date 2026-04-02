@@ -1511,9 +1511,9 @@ async function checkPw() {
 
     <!-- 배당 테이블 카드 -->
     <div class="card" style="padding:0;overflow:hidden">
-      <div style="overflow-x:auto">
+      <div style="overflow-x:auto;overflow-y:auto;max-height:420px">
         <table id="divTable" style="width:100%;border-collapse:collapse;font-size:13px;min-width:700px">
-          <thead id="divTableHead"></thead>
+          <thead id="divTableHead" style="position:sticky;top:0;z-index:2"></thead>
           <tbody id="divTableBody"></tbody>
         </table>
       </div>
@@ -2276,12 +2276,12 @@ function renderDivBarChartMultiYear() {
 
   var ctx = canvas.getContext('2d');
   var W = canvas.offsetWidth || 700;
-  var H = range > 1 ? 200 : 180;
+  var H = range > 1 ? 200 : 200;
   canvas.width = W; canvas.height = H;
   ctx.clearRect(0, 0, W, H);
 
   var max = Math.max.apply(null, totals) || 1;
-  var pad = {l:14, r:14, t:16, b: range > 1 ? 44 : 36};
+  var pad = {l:14, r:14, t:16, b: range > 1 ? 44 : 48};
   var chartW = W - pad.l - pad.r;
   var chartH = H - pad.t - pad.b;
   var n = labels.length;
@@ -2320,22 +2320,26 @@ function renderDivBarChartMultiYear() {
     else ctx.rect(x, y3, barW, bh||2);
     ctx.fill();
 
-    // 금액 레이블 (1Y일 때만 또는 충분히 클 때)
-    if (v > 0 && (range === 1 || barW >= 10)) {
-      ctx.fillStyle = textColor;
-      ctx.font = '8px sans-serif';
-      ctx.textAlign = 'center';
-      var label = v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? Math.round(v/1000)+'K' : Math.round(v)+'';
-      if (bh > 14) ctx.fillText(label, x+barW/2, y3-3);
-    }
-
-    // 월 레이블 (1Y: 모두, 3Y: 분기, 5Y+: 6개월)
+    // 월 레이블 + 금액 (바 아래)
     var showLabel = range===1 || (range===3 && lb.month%3===1) || (range>=5 && lb.month%6===1);
-    if (showLabel && range===1) {
+    if (showLabel) {
       ctx.fillStyle = muted;
-      ctx.font = '10px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(lb.month+'월', x+barW/2, H - (range>1?18:8));
+      if (range === 1) {
+        // 월 레이블
+        ctx.font = '10px sans-serif';
+        ctx.fillText(lb.month+'월', x+barW/2, H - (v>0 ? 20 : 8));
+        // 금액 (원 단위)
+        if (v > 0) {
+          ctx.font = '9px sans-serif';
+          ctx.fillStyle = textColor;
+          var amtLabel = v >= 10000000 ? Math.round(v/10000)+'만' : v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 10000 ? Math.round(v/10000)+'만' : Math.round(v)+'원';
+          ctx.fillText(amtLabel, x+barW/2, H - 7);
+        }
+      } else {
+        ctx.font = '9px sans-serif';
+        ctx.fillText(lb.month+'월', x+barW/2, H - (range>1?18:8));
+      }
     }
   });
 }
