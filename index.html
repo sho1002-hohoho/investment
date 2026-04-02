@@ -459,7 +459,10 @@ tbody tr:last-child td{border-bottom:none;}
   /* 데스크탑 row 가로 배열 강제 */
   .row { flex-direction: row !important; flex-wrap: nowrap !important; }
   .holding-card { flex: 0 0 260px !important; }
+  /* 인라인 flex 오버라이드 허용 (연금저축, 해외주식 등) */
+  .holding-card[style*="flex:1"] { flex: 1 1 0 !important; }
   .portfolio-card { flex: 1 !important; }
+  .portfolio-card[style*="flex:2"] { flex: 2 !important; }
 }
 </style>
 </head>
@@ -777,13 +780,13 @@ async function checkPw() {
       <button class="pencil-btn" onclick="editDesc('samsungDesc')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
     </div>
     <div class="row">
-      <div class="card holding-card">
+      <div class="card holding-card" style="flex:1 1 0 !important;min-width:0">
         <div class="card-header"><span class="card-heading">총 자산</span></div>
         <div class="total-amount" id="totalAmountSamsung">&#8361; 0</div>
         <div class="return-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg><span id="totalReturnSamsung" style="color:var(--muted)">거래일지에서 추가하세요</span></div>
       </div>
       <!-- 기간별 수익률 추이 카드 -->
-      <div class="card" style="flex:1;min-width:200px">
+      <div class="card" style="flex:1;min-width:0">
         <div class="card-header" style="margin-bottom:8px">
           <span class="card-heading">기간별 수익률</span>
           <div style="display:flex;gap:3px">
@@ -801,18 +804,18 @@ async function checkPw() {
               <span style="font-size:11px;color:var(--muted)" id="mcPeriodDate_samsung"></span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span style="font-size:11px;color:var(--muted)">수익률</span>
-              <span style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace" id="mcRate_samsung">-</span>
+              <span style="font-size:11px;color:var(--muted)">수익금</span>
+              <span style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace" id="mcProfit_samsung">-</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span style="font-size:11px;color:var(--muted)">수익금</span>
-              <span style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace" id="mcProfit_samsung">-</span>
+              <span style="font-size:11px;color:var(--muted)">수익률</span>
+              <span style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace" id="mcRate_samsung">-</span>
             </div>
           </div>
         </div>
       </div>
       <!-- 기간별 실현손익 카드 -->
-      <div class="card" style="flex:1;min-width:200px">
+      <div class="card" style="flex:1;min-width:0">
         <div class="card-header" style="margin-bottom:10px">
           <span class="card-heading">기간별 실현손익</span>
           <div style="display:flex;gap:3px">
@@ -826,7 +829,7 @@ async function checkPw() {
         <div id="rpSub_samsung" style="font-size:11px;color:var(--muted)">매도 거래 없음</div>
         <div id="rpList_samsung" style="margin-top:12px;display:flex;flex-direction:column;gap:4px;max-height:120px;overflow-y:auto"></div>
       </div>
-      <div class="card portfolio-card">
+      <div class="card portfolio-card" style="flex:2;min-width:0">
         <div style="font-size:13.5px;font-weight:500;margin-bottom:14px">My Portfolio</div>
         <div class="portfolio-stocks" id="portfolioStocksSamsung"></div>
       </div>
@@ -896,13 +899,13 @@ async function checkPw() {
       <button class="pencil-btn" onclick="editDesc('isaDesc')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
     </div>
     <div class="row">
-      <div class="card holding-card">
+      <div class="card holding-card" style="flex:1 1 0 !important;min-width:0">
         <div class="card-header"><span class="card-heading">총 자산</span></div>
         <div class="total-amount" id="totalAmountIsa">&#8361; 0</div>
         <div class="return-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg><span id="totalReturnIsa" style="color:var(--muted)">거래일지에서 추가하세요</span></div>
       </div>
       <!-- 기간별 수익률 추이 카드 -->
-      <div class="card" style="flex:1;min-width:200px">
+      <div class="card" style="flex:1;min-width:0">
         <div class="card-header" style="margin-bottom:8px">
           <span class="card-heading">기간별 수익률</span>
           <div style="display:flex;gap:3px">
@@ -920,17 +923,17 @@ async function checkPw() {
               <span style="font-size:11px;color:var(--muted)" id="mcPeriodDate_isa"></span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span style="font-size:11px;color:var(--muted)">수익률</span>
-              <span style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace" id="mcRate_isa">-</span>
+              <span style="font-size:11px;color:var(--muted)">수익금</span>
+              <span style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace" id="mcProfit_isa">-</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span style="font-size:11px;color:var(--muted)">수익금</span>
-              <span style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace" id="mcProfit_isa">-</span>
+              <span style="font-size:11px;color:var(--muted)">수익률</span>
+              <span style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace" id="mcRate_isa">-</span>
             </div>
           </div>
         </div>
       </div>
-      <div class="card" style="flex:1;min-width:200px">
+      <div class="card" style="flex:1;min-width:0">
         <div class="card-header" style="margin-bottom:10px">
           <span class="card-heading">기간별 실현손익</span>
           <div style="display:flex;gap:3px">
@@ -944,7 +947,7 @@ async function checkPw() {
         <div id="rpSub_isa" style="font-size:11px;color:var(--muted)">매도 거래 없음</div>
         <div id="rpList_isa" style="margin-top:12px;display:flex;flex-direction:column;gap:4px;max-height:120px;overflow-y:auto"></div>
       </div>
-      <div class="card portfolio-card" style="flex:2">
+      <div class="card portfolio-card" style="flex:2;min-width:0">
         <div style="font-size:13.5px;font-weight:500;margin-bottom:12px">목표 vs 실제 포트폴리오</div>
         <div style="display:flex;gap:16px;margin-top:8px">
           <div style="flex:0 0 210px;display:flex;flex-direction:column;gap:8px">
@@ -1151,7 +1154,7 @@ async function checkPw() {
       <button class="pencil-btn" onclick="editDesc('pensionDesc')"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button>
     </div>
     <div class="row">
-      <div class="card holding-card">
+      <div class="card holding-card" style="flex:1 1 0 !important;min-width:0">
         <div class="card-header"><span class="card-heading">총 자산</span></div>
         <div class="total-amount" id="totalAmountPension">&#8361; 0</div>
         <div class="return-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" width="12" height="12"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg><span id="totalReturnPension" style="color:var(--muted)">거래일지에서 추가하세요</span></div>
@@ -1166,7 +1169,7 @@ async function checkPw() {
         </div>
       </div>
             <!-- 기간별 수익률 추이 카드 -->
-      <div class="card" style="flex:1;min-width:200px">
+      <div class="card" style="flex:1;min-width:0">
         <div class="card-header" style="margin-bottom:8px">
           <span class="card-heading">기간별 수익률</span>
           <div style="display:flex;gap:3px">
@@ -1184,18 +1187,18 @@ async function checkPw() {
               <span style="font-size:11px;color:var(--muted)" id="mcPeriodDate_pension"></span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span style="font-size:11px;color:var(--muted)">수익률</span>
-              <span style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace" id="mcRate_pension">-</span>
+              <span style="font-size:11px;color:var(--muted)">수익금</span>
+              <span style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace" id="mcProfit_pension">-</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span style="font-size:11px;color:var(--muted)">수익금</span>
-              <span style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace" id="mcProfit_pension">-</span>
+              <span style="font-size:11px;color:var(--muted)">수익률</span>
+              <span style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace" id="mcRate_pension">-</span>
             </div>
           </div>
         </div>
       </div>
       <!-- 연금저축: 목표vs실제 + 수익률추이 -->
-      <div class="card portfolio-card" style="flex:2">
+      <div class="card portfolio-card" style="flex:2;min-width:0">
         <div style="font-size:13.5px;font-weight:500;margin-bottom:12px">목표 vs 실제 포트폴리오</div>
         <div style="display:flex;gap:16px;margin-top:8px">
           <div style="flex:0 0 210px;display:flex;flex-direction:column;gap:8px">
@@ -1304,12 +1307,12 @@ async function checkPw() {
               <span style="font-size:11px;color:var(--muted)" id="mcPeriodDate_overseas"></span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span style="font-size:11px;color:var(--muted)">수익률</span>
-              <span style="font-size:24px;font-weight:700;font-family:'DM Mono',monospace" id="mcRate_overseas">-</span>
+              <span style="font-size:11px;color:var(--muted)">수익금</span>
+              <span style="font-size:20px;font-weight:700;font-family:'DM Mono',monospace" id="mcProfit_overseas">-</span>
             </div>
             <div style="display:flex;justify-content:space-between;align-items:baseline">
-              <span style="font-size:11px;color:var(--muted)">수익금</span>
-              <span style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace" id="mcProfit_overseas">-</span>
+              <span style="font-size:11px;color:var(--muted)">수익률</span>
+              <span style="font-size:14px;font-weight:600;font-family:'DM Mono',monospace" id="mcRate_overseas">-</span>
             </div>
           </div>
         </div>
@@ -2809,49 +2812,62 @@ function renderMiniPerfChart(key, range) {
   var dateEl   = document.getElementById('mcPeriodDate_'+key);
 
   var history = (liveData.history||[]).filter(function(h){ return h.account===acct; });
+  // 날짜순 정렬
+  history.sort(function(a,b){ return a.date > b.date ? 1 : -1; });
 
-  // 기간 필터 - 오늘 기준
-  var periodLabel = {all:'전체', '1m':'1달', '2m':'2달', '1y':'1년'}[range];
+  var periodLabel = {all:'전체', '1m':'1달 전', '2m':'2달 전', '1y':'1년 전'}[range];
   if (labelEl) labelEl.textContent = periodLabel;
 
-  var filtered = history.slice();
-  if (range !== 'all' && history.length) {
+  // 당일(최신) 데이터
+  var today = history.length ? history[history.length-1] : null;
+
+  // 기간 시작 시점 데이터: 오늘 기준 N일 전 가장 가까운 스냅샷
+  var startSnap = null;
+  if (range === 'all') {
+    startSnap = history.length ? history[0] : null;
+  } else {
     var days = {'1m':30,'2m':60,'1y':365}[range];
     var cutoff = new Date(); cutoff.setDate(cutoff.getDate()-days);
-    filtered = history.filter(function(h){ return new Date(h.date) >= cutoff; });
+    var cutoffStr = cutoff.toISOString().slice(0,10);
+    // cutoff 날짜 이전 중 가장 최근 스냅샷
+    for (var i = history.length-1; i >= 0; i--) {
+      if (history[i].date <= cutoffStr) { startSnap = history[i]; break; }
+    }
+    if (!startSnap) startSnap = history[0]; // 그 이전 데이터 없으면 가장 오래된 것
   }
 
-  if (!filtered.length) {
+  if (!today) {
     if (rateEl)   { rateEl.textContent = '-'; rateEl.style.color = 'var(--muted)'; }
     if (profitEl) { profitEl.textContent = '-'; profitEl.style.color = 'var(--muted)'; }
     if (dateEl)   dateEl.textContent = '';
     return;
   }
 
-  // 기간 시작/끝 데이터
-  var first = filtered[0];
-  var last  = filtered[filtered.length-1];
+  // 당일 평가금액 vs 기간 시작 평가금액 → 기간 수익금/수익률
+  var todayEval  = Number(today.totalEval) || 0;
+  var startEval  = startSnap ? (Number(startSnap.totalEval) || 0) : 0;
+  var startBuy   = startSnap ? (Number(startSnap.totalBuy)  || 0) : 0;
+  var todayRate  = Number(today.profitRate) || 0;
 
-  // 수익률: 마지막 날 기준
-  var lastRate   = Number(last.profitRate) || 0;
-  // 기간 수익금: 마지막 평가 - 첫 날 평가
-  var lastEval   = Number(last.totalEval)  || 0;
-  var firstEval  = Number(first.totalEval) || 0;
-  var lastBuy    = Number(last.totalBuy)   || 0;
-  var periodProfit = lastEval - lastBuy; // 현재 기준 미실현손익
+  // 기간 수익금 = 오늘 평가 - 시작 평가 (기간 중 변화량)
+  var periodProfit = todayEval - startEval;
+  // 기간 수익률 = 기간 수익금 / 시작 평가 * 100
+  var periodRate = startEval > 0 ? periodProfit / startEval * 100 : todayRate;
 
-  // 기간 표시
-  if (dateEl) dateEl.textContent = first.date + ' ~';
+  // 기간 시작일 표시
+  if (dateEl) dateEl.textContent = startSnap ? startSnap.date + ' 기준' : '';
 
-  var color = lastRate >= 0 ? 'var(--green)' : 'var(--red)';
-  if (rateEl) {
-    rateEl.textContent = (lastRate>=0?'+':'')+lastRate.toFixed(2)+'%';
-    rateEl.style.color = color;
-  }
+  var color = periodRate >= 0 ? 'var(--green)' : 'var(--red)';
+  // 수익금 (위, 크게)
   if (profitEl) {
     var profitStr = (periodProfit>=0?'+':'') + Math.round(periodProfit).toLocaleString('ko-KR') + '원';
     profitEl.textContent = profitStr;
     profitEl.style.color = periodProfit>=0?'var(--green)':'var(--red)';
+  }
+  // 수익률 (아래, 작게)
+  if (rateEl) {
+    rateEl.textContent = (periodRate>=0?'+':'')+periodRate.toFixed(2)+'%';
+    rateEl.style.color = color;
   }
 }
 
